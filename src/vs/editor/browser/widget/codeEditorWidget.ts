@@ -2022,6 +2022,7 @@ export class EditorModeContext extends Disposable {
 		this._register(_languageFeaturesService.completionProvider.onDidChange(update));
 		this._register(_languageFeaturesService.codeActionProvider.onDidChange(update));
 		this._register(_languageFeaturesService.codeLensProvider.onDidChange(update));
+		this._register(_languageFeaturesService.copyPasteActionProvider.onDidChange(update));
 		this._register(_languageFeaturesService.definitionProvider.onDidChange(update));
 		this._register(_languageFeaturesService.declarationProvider.onDidChange(update));
 		this._register(_languageFeaturesService.implementationProvider.onDidChange(update));

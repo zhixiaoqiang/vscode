@@ -366,6 +366,36 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 		this._registrations.set(handle, this._languageFeaturesService.codeActionProvider.register(selector, provider));
 	}
 
+	// --- copy paste action provider
+
+	$registerCopyPasteActionProvider(handle: number, selector: IDocumentFilterDto[], id: string, supportsCopy: boolean): void {
+		const provider: languages.CopyPasteActionProvider = {
+			provideCopyData: supportsCopy
+				? async (model: ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<IDataTransfer | undefined> => {
+					const dataTransferDto = await DataTransferConverter.toDataTransferDTO(dataTransfer);
+					if (token.isCancellationRequested) {
+						return undefined;
+					}
+
+					const result = await this._proxy.$provideCopyData(handle, model.uri, selection, dataTransferDto, token);
+					if (!result) {
+						return undefined;
+					}
+
+					return DataTransferConverter.toDataTransfer(result, () => { throw new Error('Not implemented'); });
+				}
+				: undefined,
+
+			providePasteEdits: async (model: ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken) => {
+				const d = await DataTransferConverter.toDataTransferDTO(dataTransfer);
+				const result = await this._proxy.$providePasteEdits(handle, model.uri, selection, d, token);
+				return result && reviveWorkspaceEditDto(result);
+			}
+		};
+
+		this._registrations.set(handle, this._languageFeaturesService.copyPasteActionProvider.register(selector, provider));
+	}
+
 	// --- formatting
 
 	$registerDocumentFormattingSupport(handle: number, selector: IDocumentFilterDto[], extensionId: ExtensionIdentifier, displayName: string): void {

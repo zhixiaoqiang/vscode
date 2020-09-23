@@ -31,7 +31,7 @@ import { IdGenerator } from 'vs/base/common/idGenerator';
 import { IExtHostApiDeprecationService } from 'vs/workbench/api/common/extHostApiDeprecationService';
 import { Cache } from './cache';
 import { StopWatch } from 'vs/base/common/stopwatch';
-import { isCancellationError } from 'vs/base/common/errors';
+import { isCancellationError, NotImplementedError } from 'vs/base/common/errors';
 import { raceCancellationError } from 'vs/base/common/async';
 import { isProposedApiEnabled } from 'vs/workbench/services/extensions/common/extensions';
 import { DataTransferConverter, DataTransferDTO } from 'vs/workbench/api/common/shared/dataTransfer';
@@ -483,6 +483,48 @@ class CodeActionAdapter {
 
 	private static _isCommand(thing: any): thing is vscode.Command {
 		return typeof (<vscode.Command>thing).command === 'string' && typeof (<vscode.Command>thing).title === 'string';
+	}
+}
+
+class CopyPasteActionProvider {
+
+	constructor(
+		private readonly _proxy: extHostProtocol.MainThreadLanguageFeaturesShape,
+		private readonly _documents: ExtHostDocuments,
+		private readonly _provider: vscode.DocumentCopyPasteEditProvider,
+		private readonly _handle: number,
+	) { }
+
+	async provideCopyData(resource: URI, selection: ISelection, dataTransferDto: DataTransferDTO, token: CancellationToken): Promise<DataTransferDTO | undefined> {
+		if (!this._provider.provideCopyData) {
+			return undefined;
+		}
+
+		const doc = this._documents.getDocument(resource);
+		const vscodeSelection = typeConvert.Selection.to(selection);
+
+		const dataTransfer = DataTransferConverter.toDataTransfer(dataTransferDto, () => {
+			throw new NotImplementedError();
+		});
+		await this._provider.provideCopyData(doc, vscodeSelection, dataTransfer, token);
+
+		return DataTransferConverter.toDataTransferDTO(dataTransfer);
+	}
+
+	async providePasteEdits(requestId: number, resource: URI, selection: ISelection, dataTransferDto: DataTransferDTO, token: CancellationToken): Promise<undefined | extHostProtocol.IWorkspaceEditDto> {
+		const doc = this._documents.getDocument(resource);
+		const vscodeSelection = typeConvert.Selection.to(selection);
+
+		const dataTransfer = DataTransferConverter.toDataTransfer(dataTransferDto, async (index) => {
+			return (await this._proxy.$resolveDocumentOnDropFileData(this._handle, requestId, index)).buffer;
+		});
+
+		const result = await this._provider.providePasteDocumentEdits(doc, vscodeSelection, dataTransfer, token);
+		if (!result) {
+			return;
+		}
+
+		return typeConvert.WorkspaceEdit.from(result);
 	}
 }
 
@@ -1770,7 +1812,7 @@ class DocumentOnDropAdapter {
 }
 
 type Adapter = DocumentSymbolAdapter | CodeLensAdapter | DefinitionAdapter | HoverAdapter
-	| DocumentHighlightAdapter | ReferenceAdapter | CodeActionAdapter | DocumentFormattingAdapter
+	| DocumentHighlightAdapter | ReferenceAdapter | CodeActionAdapter | CopyPasteActionProvider | DocumentFormattingAdapter
 	| RangeFormattingAdapter | OnTypeFormattingAdapter | NavigateTypeAdapter | RenameAdapter
 	| CompletionsAdapter | SignatureHelpAdapter | LinkProviderAdapter | ImplementationAdapter
 	| TypeDefinitionAdapter | ColorProviderAdapter | FoldingProviderAdapter | DeclarationAdapter
@@ -2412,6 +2454,23 @@ export class ExtHostLanguageFeatures implements extHostProtocol.ExtHostLanguageF
 	$provideDocumentOnDropEdits(handle: number, requestId: number, resource: UriComponents, position: IPosition, dataTransferDto: DataTransferDTO, token: CancellationToken): Promise<Dto<languages.SnippetTextEdit> | undefined> {
 		return this._withAdapter(handle, DocumentOnDropAdapter, adapter =>
 			Promise.resolve(adapter.provideDocumentOnDropEdits(requestId, URI.revive(resource), position, dataTransferDto, token)), undefined, undefined);
+	}
+
+	// --- copy/paste actions
+
+	registerCopyPasteActionProvider(extension: IExtensionDescription, selector: vscode.DocumentSelector, provider: vscode.DocumentCopyPasteEditProvider): vscode.Disposable {
+		const handle = this._nextHandle();
+		this._adapter.set(handle, new AdapterData(new CopyPasteActionProvider(this._proxy, this._documents, provider, handle), extension));
+		this._proxy.$registerCopyPasteActionProvider(handle, this._transformDocumentSelector(selector), 'todo', !!provider.provideCopyData);
+		return this._createDisposable(handle);
+	}
+
+	$provideCopyData(handle: number, resource: UriComponents, selection: ISelection, dataTransfer: DataTransferDTO, token: CancellationToken): Promise<DataTransferDTO | undefined> {
+		return this._withAdapter(handle, CopyPasteActionProvider, adapter => adapter.provideCopyData(URI.revive(resource), selection, dataTransfer, token), undefined, token);
+	}
+
+	$providePasteEdits(handle: number, resource: UriComponents, selection: ISelection, dataTransferDto: DataTransferDTO, token: CancellationToken): Promise<extHostProtocol.IWorkspaceEditDto | undefined> {
+		return this._withAdapter(handle, CopyPasteActionProvider, adapter => adapter.providePasteEdits(0, URI.revive(resource), selection, dataTransferDto, token), undefined, token);
 	}
 
 	// --- configuration

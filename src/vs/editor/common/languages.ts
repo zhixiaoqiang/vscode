@@ -917,6 +917,15 @@ export interface CodeActionProvider {
 }
 
 /**
+ * @internal
+ */
+export interface CopyPasteActionProvider {
+	provideCopyData?(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<undefined | IDataTransfer>;
+
+	providePasteEdits(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<WorkspaceEdit | undefined>;
+}
+
+/**
  * Represents a parameter of a callable-signature. A parameter can
  * have a label and a doc-comment.
  */

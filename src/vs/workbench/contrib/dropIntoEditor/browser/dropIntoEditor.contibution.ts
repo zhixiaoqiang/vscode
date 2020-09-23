@@ -9,11 +9,12 @@ import { Disposable } from 'vs/base/common/lifecycle';
 import { Mimes } from 'vs/base/common/mime';
 import { relativePath } from 'vs/base/common/resources';
 import { URI } from 'vs/base/common/uri';
+import { toIDataTransfer } from 'vs/editor/browser/dnd';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
 import { registerEditorContribution } from 'vs/editor/browser/editorExtensions';
 import { IPosition } from 'vs/editor/common/core/position';
 import { Range } from 'vs/editor/common/core/range';
-import { IDataTransfer, IDataTransferItem } from 'vs/editor/common/dnd';
+import { IDataTransfer } from 'vs/editor/common/dnd';
 import { IEditorContribution } from 'vs/editor/common/editorCommon';
 import { ILanguageFeaturesService } from 'vs/editor/common/services/languageFeatures';
 import { performSnippetEdit } from 'vs/editor/contrib/snippet/browser/snippetController2';
@@ -45,36 +46,7 @@ export class DropIntoEditorController extends Disposable implements IEditorContr
 		const model = editor.getModel();
 		const modelVersionNow = model.getVersionId();
 
-		const textEditorDataTransfer: IDataTransfer = new Map<string, IDataTransferItem>();
-		for (const item of dragEvent.dataTransfer.items) {
-			const type = item.type;
-			if (item.kind === 'string') {
-				const asStringValue = new Promise<string>(resolve => item.getAsString(resolve));
-				textEditorDataTransfer.set(type, {
-					asString: () => asStringValue,
-					asFile: () => undefined,
-					value: undefined
-				});
-			} else if (item.kind === 'file') {
-				const file = item.getAsFile();
-				if (file) {
-					textEditorDataTransfer.set(type, {
-						asString: () => Promise.resolve(''),
-						asFile: () => {
-							const uri = file.path ? URI.parse(file.path) : undefined;
-							return {
-								name: file.name,
-								uri: uri,
-								data: async () => {
-									return new Uint8Array(await file.arrayBuffer());
-								},
-							};
-						},
-						value: undefined
-					});
-				}
-			}
-		}
+		const textEditorDataTransfer = toIDataTransfer(dragEvent.dataTransfer);
 
 		if (!textEditorDataTransfer.has(Mimes.uriList.toLowerCase())) {
 			const editorData = (await this._instantiationService.invokeFunction(extractEditorsDropData, dragEvent))
@@ -168,3 +140,4 @@ export class DropIntoEditorController extends Disposable implements IEditorContr
 
 
 registerEditorContribution(DropIntoEditorController.ID, DropIntoEditorController);
+
