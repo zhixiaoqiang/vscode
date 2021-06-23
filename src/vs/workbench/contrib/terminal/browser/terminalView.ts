@@ -569,11 +569,26 @@ class TerminalThemeIconStyle extends Themable {
 			}
 			const iconClasses = getUriClasses(instance, colorTheme.type);
 			if (uri instanceof URI && iconClasses && iconClasses.length > 1) {
-				css += `.monaco-workbench .${iconClasses[0]} .monaco-highlighted-label .codicon, .monaco-action-bar .terminal-uri-icon.single-terminal-tab.action-label:not(.alt-command) .codicon {`;
-				css += `background-image: ${dom.asCSSUrl(uri)};}`;
+				css += (
+					`.terminal-${instance.instanceId}-name-file-icon::before` +
+					`{ content: '' !important }` +
+					`.terminal-${instance.instanceId}-name-file-icon::before,` +
+					`.monaco-workbench .${iconClasses[0]} .monaco-highlighted-label .codicon, .monaco-action-bar .terminal-uri-icon.single-terminal-tab.action-label:not(.alt-command) .codicon` +
+					`{ background-image: ${dom.asCSSUrl(uri)}; }`
+				);
 			}
+			if (ThemeIcon.isThemeIcon(uri)) {
+				css += (
+					`.terminal-${instance.instanceId}-name-file-icon::before` +
+					`{` +
+					`font-family: 'codicon' !important;` +
+					`content: '\\ea85' !important;` +
+					`}`
+				);
+			}
+			console.log('css', css);
 		}
-
+		// terminal-1-name-file-icon
 		// Add colors
 		for (const instance of this._terminalService.instances) {
 			const colorClass = getColorClass(instance);
@@ -583,7 +598,13 @@ class TerminalThemeIconStyle extends Themable {
 			const color = colorTheme.getColor(instance.color);
 			if (color) {
 				// exclude status icons (file-icon) and inline action icons (trashcan and horizontalSplit)
-				css += `.monaco-workbench .${colorClass} .codicon:first-child:not(.codicon-split-horizontal):not(.codicon-trashcan):not(.file-icon) { color: ${color} !important; }`;
+				css += (
+					// Terminal editors
+					`.terminal-${instance.instanceId}-name-file-icon::before,` +
+					// Tabs list
+					`.monaco-workbench .${colorClass} .codicon:first-child:not(.codicon-split-horizontal):not(.codicon-trashcan):not(.file-icon)` +
+					`{ color: ${color} !important; }`
+				);
 			}
 		}
 

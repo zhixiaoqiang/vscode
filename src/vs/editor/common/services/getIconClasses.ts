@@ -19,12 +19,20 @@ export function getIconClasses(modelService: IModelService, modeService: IModeSe
 
 		// Get the path and name of the resource. For data-URIs, we need to parse specially
 		let name: string | undefined;
-		if (resource.scheme === Schemas.data) {
-			const metadata = DataUri.parseMetaData(resource);
-			name = metadata.get(DataUri.META_DATA_LABEL);
-		} else {
-			name = cssEscape(basenameOrAuthority(resource).toLowerCase());
+		console.log('resource', resource);
+		switch (resource.scheme) {
+			case Schemas.data:
+				const metadata = DataUri.parseMetaData(resource);
+				name = metadata.get(DataUri.META_DATA_LABEL);
+				break;
+			// case Schemas.vscodeTerminal:
+			// 	name = `terminal-${cssEscape(basenameOrAuthority(resource).toLowerCase())}`;
+			// 	break;
+			default:
+				name = cssEscape(basenameOrAuthority(resource).toLowerCase());
 		}
+
+		console.log('name', name);
 
 		// Folders
 		if (fileKind === FileKind.FOLDER) {
