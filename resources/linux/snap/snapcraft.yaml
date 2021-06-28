@@ -12,6 +12,7 @@ architectures:
 
 grade: stable
 confinement: classic
+base: core18
 
 parts:
   gnome:
