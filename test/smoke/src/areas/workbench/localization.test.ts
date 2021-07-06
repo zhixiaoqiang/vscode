@@ -30,6 +30,15 @@ export function setup(opts: minimist.ParsedArgs) {
 		it(`starts with 'DE' locale and verifies title and viewlets text is in German`, async function () {
 			const app = this.app as Application;
 
+			const localeInfo = await app.workbench.localization.getLocaleInfo();
+			if (localeInfo.locale === undefined || localeInfo.locale.toLowerCase() !== 'de') {
+				throw new Error(`The requested locale for VS Code was not German. The received value is: ${localeInfo.locale === undefined ? 'not set' : localeInfo.locale}`);
+			}
+
+			if (localeInfo.language.toLowerCase() !== 'de') {
+				throw new Error(`The UI language is not German. It is ${localeInfo.language}`);
+			}
+
 			const result = await app.workbench.localization.getLocalizedStrings();
 			if (app.quality === Quality.Dev || app.remote) {
 				if (result.open !== 'open' || result.close !== 'close' || result.find !== 'find') {
