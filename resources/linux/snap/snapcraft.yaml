@@ -16,17 +16,7 @@ confinement: classic
 base: core18
 
 parts:
-  gnome:
-    plugin: nil
-    build-packages:
-      - software-properties-common
-    override-pull: |
-      add-apt-repository -y ppa:ubuntu-desktop/gnome-3-26
-      apt -y update
-
   code:
-    after:
-      - gnome
     plugin: dump
     source: .
     stage-packages:
@@ -54,6 +44,31 @@ parts:
       - -usr/share/icons
       - -usr/share/lintian
       - -usr/share/man
+  gtk-common-themes:
+    plugin: nil
+    build-packages:
+      - snapd
+    override-pull: |
+      set -eu
+      snap download gtk-common-themes --edge
+      unsquashfs gtk-common-themes*.snap
+    override-build: |
+      set -eu
+      [ -d squashfs-root/ ] || exit 1
+      cp -a squashfs-root/* $SNAPCRAFT_PART_INSTALL/
+  gnome-platform:
+    plugin: nil
+    build-packages:
+      - snapd
+    override-pull: |
+      set -eu
+      snap download gnome-3-34-1804 --edge
+      unsquashfs gnome-*.snap
+    override-build: |
+      set -eu
+      [ -d squashfs-root/ ] || exit 1
+      mkdir -pv $SNAPCRAFT_PART_INSTALL/gnome-platform
+      cp -a squashfs-root/* $SNAPCRAFT_PART_INSTALL/gnome-platform
 
 apps:
   @@NAME@@:
@@ -68,3 +83,13 @@ apps:
     environment:
       DISABLE_WAYLAND: 1
       GSETTINGS_SCHEMA_DIR: $SNAP/usr/share/glib-2.0/schemas
+
+environment:
+  GTK_USE_PORTAL: '1'
+  SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
+
+layout:
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0:
+    bind: $SNAP/gnome-platform/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0
+  /usr/share/xml/iso-codes:
+    bind: $SNAP/gnome-platform/usr/share/xml/iso-codes
