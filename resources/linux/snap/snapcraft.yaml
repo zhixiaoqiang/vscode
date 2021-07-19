@@ -38,6 +38,7 @@ parts:
       - libxss1
       - libxtst6
       - zlib1g
+      - libxshmfence1
     prime:
       - -usr/share/doc
       - -usr/share/fonts
