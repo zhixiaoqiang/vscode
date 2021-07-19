@@ -44,18 +44,6 @@ parts:
       - -usr/share/icons
       - -usr/share/lintian
       - -usr/share/man
-  gtk-common-themes:
-    plugin: nil
-    build-packages:
-      - snapd
-    override-pull: |
-      set -eu
-      snap download gtk-common-themes --edge
-      unsquashfs gtk-common-themes*.snap
-    override-build: |
-      set -eu
-      [ -d squashfs-root/ ] || exit 1
-      cp -a squashfs-root/* $SNAPCRAFT_PART_INSTALL/
   gnome-platform:
     plugin: nil
     build-packages:
@@ -75,18 +63,16 @@ apps:
     command: electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --no-sandbox
     common-id: @@NAME@@.desktop
     environment:
+      GTK_USE_PORTAL: 1
       DISABLE_WAYLAND: 1
-      GSETTINGS_SCHEMA_DIR: $SNAP/usr/share/glib-2.0/schemas
+      SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
 
   url-handler:
     command: electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --open-url --no-sandbox
     environment:
+      GTK_USE_PORTAL: 1
       DISABLE_WAYLAND: 1
-      GSETTINGS_SCHEMA_DIR: $SNAP/usr/share/glib-2.0/schemas
-
-environment:
-  GTK_USE_PORTAL: '1'
-  SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
+      SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
 
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0:
