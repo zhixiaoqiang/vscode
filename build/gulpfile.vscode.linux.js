@@ -238,13 +238,7 @@ function prepareSnapPackage(arch) {
 			.pipe(replace('@@ARCHITECTURE@@', arch === 'x64' ? 'amd64' : arch))
 			.pipe(rename('snap/snapcraft.yaml'));
 
-		const electronLaunch = gulp.src('resources/linux/snap/electron-launch', { base: '.' })
-			.pipe(rename('electron-launch'));
-
-		const hooks = gulp.src('resources/linux/snap/hooks/configure', { base: '.' })
-			.pipe(rename('snap/hooks/configure'));
-
-		const all = es.merge(desktops, icon, code, snapcraft, electronLaunch, hooks);
+		const all = es.merge(desktops, icon, code, snapcraft);
 
 		return all.pipe(vfs.dest(destination));
 	};
