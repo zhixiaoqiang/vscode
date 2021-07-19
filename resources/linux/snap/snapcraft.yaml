@@ -14,6 +14,8 @@ compression: lzo
 grade: stable
 confinement: classic
 base: core18
+assumes:
+  - snapd2.43
 
 parts:
   code:
@@ -58,10 +60,17 @@ parts:
       [ -d squashfs-root/ ] || exit 1
       mkdir -pv $SNAPCRAFT_PART_INSTALL/gnome-platform
       cp -a squashfs-root/* $SNAPCRAFT_PART_INSTALL/gnome-platform
+  electron-launch-wrapper:
+    source: .
+    plugin: dump
+    after:
+      - code
+    organize:
+      electron-launch : bin/electron-launch
 
 apps:
   @@NAME@@:
-    command: $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --no-sandbox
+    command: bin/electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --no-sandbox
     common-id: @@NAME@@.desktop
     command-chain:
       - snap/command-chain/desktop-launch
@@ -78,7 +87,7 @@ apps:
       SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
 
   url-handler:
-    command: $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --open-url --no-sandbox
+    command: bin/electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --open-url --no-sandbox
     command-chain:
       - snap/command-chain/desktop-launch
     plugs:

@@ -43,6 +43,7 @@ module.exports.indentationFilter = [
 	'!src/vs/base/node/terminateProcess.sh',
 	'!src/vs/base/node/cpuUsage.sh',
 	'!test/unit/assert.js',
+	'!resources/linux/snap/electron-launch',
 	'!build/ext.js',
 
 	// except specific folders
