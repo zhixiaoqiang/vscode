@@ -58,58 +58,47 @@ parts:
       [ -d squashfs-root/ ] || exit 1
       mkdir -pv $SNAPCRAFT_PART_INSTALL/gnome-platform
       cp -a squashfs-root/* $SNAPCRAFT_PART_INSTALL/gnome-platform
-  electron-launch-wrapper:
-    source: .
-    plugin: dump
+  gnome-3-34-extension:
     after:
-      - code
-    organize:
-      electron-launch : bin/electron-launch
+      - gnome-platform
+    build-packages:
+      - gcc
+    build-snaps:
+      - gnome-3-34-1804-sdk/latest/stable
+    make-parameters:
+      - WITH_BINDTEXTDOMAIN=1
+      - PLATFORM_PLUG=gnome-3-34-1804
+    plugin: make
+    source: $SNAPCRAFT_EXTENSIONS_DIR/desktop
+    source-subdir: gnome
+    override-stage: |
+      snapcraftctl stage
+      sed -i "/if ! snapctl is-connected/,/fi/d" $SNAPCRAFT_PART_INSTALL/snap/command-chain/desktop-launch
 
 apps:
   @@NAME@@:
-    command: bin/electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --no-sandbox
+    command: electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --no-sandbox
     common-id: @@NAME@@.desktop
     command-chain:
       - snap/command-chain/desktop-launch
-    plugs:
-      - desktop
-      - desktop-legacy
-      - gsettings
-      - opengl
-      - wayland
-      - x11
     environment:
       GTK_USE_PORTAL: 1
       DISABLE_WAYLAND: 1
       SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
 
   url-handler:
-    command: bin/electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --open-url --no-sandbox
+    command: electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --open-url --no-sandbox
     command-chain:
       - snap/command-chain/desktop-launch
-    plugs:
-      - desktop
-      - desktop-legacy
-      - gsettings
-      - opengl
-      - wayland
-      - x11
     environment:
       GTK_USE_PORTAL: 1
       DISABLE_WAYLAND: 1
       SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
 
-plugs:
-  desktop:
-    mount-host-font-cache: false
-
 hooks:
   configure:
     command-chain:
       - snap/command-chain/hooks-configure-desktop
-    plugs:
-      - desktop
 
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0:
