@@ -14,8 +14,6 @@ compression: lzo
 grade: stable
 confinement: classic
 base: core18
-assumes:
-  - snapd2.43
 
 parts:
   code:
