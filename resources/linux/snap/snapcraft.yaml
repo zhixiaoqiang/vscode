@@ -61,48 +61,19 @@ parts:
 
 apps:
   @@NAME@@:
-    command: $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --no-sandbox
+    command: electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --no-sandbox
     common-id: @@NAME@@.desktop
-    command-chain:
-      - snap/command-chain/desktop-launch
-    plugs:
-      - desktop
-      - desktop-legacy
-      - gsettings
-      - opengl
-      - wayland
-      - x11
     environment:
       GTK_USE_PORTAL: 1
       DISABLE_WAYLAND: 1
       SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
 
   url-handler:
-    command: $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --open-url --no-sandbox
-    command-chain:
-      - snap/command-chain/desktop-launch
-    plugs:
-      - desktop
-      - desktop-legacy
-      - gsettings
-      - opengl
-      - wayland
-      - x11
+    command: electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --open-url --no-sandbox
     environment:
       GTK_USE_PORTAL: 1
       DISABLE_WAYLAND: 1
       SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
-
-plugs:
-  desktop:
-    mount-host-font-cache: false
-
-hooks:
-  configure:
-    command-chain:
-      - snap/command-chain/hooks-configure-desktop
-    plugs:
-      - desktop
 
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0:
