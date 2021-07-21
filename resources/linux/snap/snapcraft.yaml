@@ -67,6 +67,7 @@ apps:
       GTK_USE_PORTAL: 1
       DISABLE_WAYLAND: 1
       SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
+      GSETTINGS_SCHEMA_DIR: $SNAP/usr/share/glib-2.0/schemas
 
   url-handler:
     command: electron-launch $SNAP/usr/share/@@NAME@@/bin/@@NAME@@ --open-url --no-sandbox
@@ -74,6 +75,7 @@ apps:
       GTK_USE_PORTAL: 1
       DISABLE_WAYLAND: 1
       SNAP_DESKTOP_RUNTIME: $SNAP/gnome-platform
+      GSETTINGS_SCHEMA_DIR: $SNAP/usr/share/glib-2.0/schemas
 
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0:
