@@ -50,6 +50,9 @@ import { ActionViewItem } from 'vs/base/browser/ui/actionbar/actionViewItems';
 import { Codicon } from 'vs/base/common/codicons';
 import { registerIcon } from 'vs/platform/theme/common/iconRegistry';
 import { Link } from 'vs/platform/opener/browser/link';
+import { MarkersViewMode } from 'vs/workbench/contrib/markers/browser/markersView';
+import { IContextKey, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
+import Constants from 'vs/workbench/contrib/markers/browser/constants';
 
 interface IResourceMarkersTemplateData {
 	resourceLabel: IResourceLabel;
@@ -694,6 +697,9 @@ export class MarkersViewModel extends Disposable {
 	private readonly _onDidChange: Emitter<Marker | undefined> = this._register(new Emitter<Marker | undefined>());
 	readonly onDidChange: Event<Marker | undefined> = this._onDidChange.event;
 
+	private readonly _onDidChangeViewMode: Emitter<MarkersViewMode> = this._register(new Emitter<MarkersViewMode>());
+	readonly onDidChangeViewMode: Event<MarkersViewMode> = this._onDidChangeViewMode.event;
+
 	private readonly markersViewStates: Map<string, { viewModel: MarkerViewModel, disposables: IDisposable[] }> = new Map<string, { viewModel: MarkerViewModel, disposables: IDisposable[] }>();
 	private readonly markersPerResource: Map<string, Marker[]> = new Map<string, Marker[]>();
 
@@ -702,12 +708,18 @@ export class MarkersViewModel extends Disposable {
 	private hoveredMarker: Marker | null = null;
 	private hoverDelayer: Delayer<void> = new Delayer<void>(300);
 
+	private viewModeContextKey: IContextKey<MarkersViewMode>;
+
 	constructor(
 		multiline: boolean = true,
-		@IInstantiationService private instantiationService: IInstantiationService
+		@IContextKeyService private readonly contextKeyService: IContextKeyService,
+		@IInstantiationService private readonly instantiationService: IInstantiationService
 	) {
 		super();
 		this._multiline = multiline;
+
+		this.viewModeContextKey = Constants.MarkersViewModeContextKey.bindTo(this.contextKeyService);
+		this.viewModeContextKey.set(MarkersViewMode.Tree);
 	}
 
 	add(marker: Marker): void {
@@ -788,6 +800,21 @@ export class MarkersViewModel extends Disposable {
 		if (changed) {
 			this._onDidChange.fire(undefined);
 		}
+	}
+
+	private _viewMode: MarkersViewMode = MarkersViewMode.Tree;
+	get viewMode(): MarkersViewMode {
+		return this._viewMode;
+	}
+
+	set viewMode(value: MarkersViewMode) {
+		if (this._viewMode === value) {
+			return;
+		}
+
+		this._viewMode = value;
+		this._onDidChangeViewMode.fire(value);
+		this.viewModeContextKey.set(value);
 	}
 
 	override dispose(): void {

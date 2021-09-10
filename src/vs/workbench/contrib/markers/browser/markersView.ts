@@ -66,6 +66,11 @@ function createResourceMarkersIterator(resourceMarkers: ResourceMarkers): Iterab
 	});
 }
 
+export const enum MarkersViewMode {
+	Table = 'table',
+	Tree = 'tree'
+}
+
 export class MarkersView extends ViewPane implements IMarkersView {
 
 	private lastSelectedRelativeTop: number = 0;
@@ -76,6 +81,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 	private readonly filter: Filter;
 	private readonly onVisibleDisposables = this._register(new DisposableStore());
 
+	// private table: MarkersTable | undefined;
 	private tree: MarkersTree | undefined;
 	private filterActionBar: ActionBar | undefined;
 	private messageBoxContainer: HTMLElement | undefined;
@@ -126,6 +132,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 
 		this.markersModel = this._register(instantiationService.createInstance(MarkersModel));
 		this.markersViewModel = this._register(instantiationService.createInstance(MarkersViewModel, this.panelState['multiline']));
+		this._register(this.markersViewModel.onDidChangeViewMode(viewMode => console.log(viewMode)));
 		this._register(this.onDidChangeVisibility(visible => this.onDidChangeMarkersViewVisibility(visible)));
 
 		this.setCurrentActiveEditor();
@@ -475,6 +482,10 @@ export class MarkersView extends ViewPane implements IMarkersView {
 
 	setMultiline(multiline: boolean): void {
 		this.markersViewModel.multiline = multiline;
+	}
+
+	setViewMode(viewMode: MarkersViewMode): void {
+		this.markersViewModel.viewMode = viewMode;
 	}
 
 	private onDidChangeMarkersViewVisibility(visible: boolean): void {
@@ -881,6 +892,10 @@ export class MarkersView extends ViewPane implements IMarkersView {
 	}
 
 }
+
+// class MarkersTable {
+
+// }
 
 class MarkersTree extends WorkbenchObjectTree<MarkerElement, FilterData> {
 
