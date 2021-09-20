@@ -215,3 +215,41 @@
 .markers-panel .monaco-tl-contents .actions .action-item.disabled {
 	display: none;
 }
+
+
+.markers-panel .markers-table-container {
+	padding-left: 20px;
+}
+
+.markers-panel .markers-table-container .monaco-table-th,
+.markers-panel .markers-table-container .monaco-table-td {
+	display: flex;
+	align-items: center;
+	padding-left: 10px;
+}
+
+.markers-panel .markers-table-container .monaco-list-row.selected .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item,
+.markers-panel .markers-table-container .monaco-list-row.focused .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item.disabled,
+.markers-panel .markers-table-container .monaco-list-row:hover .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item {
+	display: flex;
+}
+
+.markers-panel .markers-table-container .monaco-list-row .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item,
+.markers-panel .markers-table-container .monaco-list-row.selected .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item.disabled,
+.markers-panel .markers-table-container .monaco-list-row.focused .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item.disabled,
+.markers-panel .markers-table-container .monaco-list-row:hover .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item.disabled {
+	display: none;
+}
+
+.markers-panel .monaco-table-td .severity {
+	display: flex;
+}
+
+.markers-panel .monaco-table-td .code,
+.markers-panel .monaco-table-td .message,
+.markers-panel .monaco-table-td .file,
+.markers-panel .monaco-table-td .position,
+.markers-panel .monaco-table-td .owner {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
