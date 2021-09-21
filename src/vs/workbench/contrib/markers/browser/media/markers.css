@@ -228,16 +228,23 @@
 	padding-left: 10px;
 }
 
-.markers-panel .markers-table-container .monaco-list-row.selected .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item,
-.markers-panel .markers-table-container .monaco-list-row.focused .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item.disabled,
-.markers-panel .markers-table-container .monaco-list-row:hover .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item {
+.markers-panel .markers-table-container .monaco-list-row .monaco-table-tr .monaco-table-td .actions {
+	margin-left: -3px;
+}
+
+.markers-panel .markers-table-container .monaco-list-row .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item {
+	display: none;
+}
+
+.markers-panel .markers-table-container .monaco-list-row.selected .monaco-table-tr .monaco-table-td.quickFix .actions .monaco-action-bar .action-item,
+.markers-panel .markers-table-container .monaco-list-row.focused .monaco-table-tr .monaco-table-td.quickFix .actions .monaco-action-bar .action-item,
+.markers-panel .markers-table-container .monaco-list-row:hover .monaco-table-tr .monaco-table-td.quickFix .actions .monaco-action-bar .action-item {
 	display: flex;
 }
 
-.markers-panel .markers-table-container .monaco-list-row .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item,
-.markers-panel .markers-table-container .monaco-list-row.selected .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item.disabled,
-.markers-panel .markers-table-container .monaco-list-row.focused .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item.disabled,
-.markers-panel .markers-table-container .monaco-list-row:hover .monaco-table-tr .monaco-table-td .actions .monaco-action-bar .action-item.disabled {
+.markers-panel .markers-table-container .monaco-list-row.selected .monaco-table-tr .monaco-table-td.quickFix .severity,
+.markers-panel .markers-table-container .monaco-list-row.focused .monaco-table-tr .monaco-table-td.quickFix .severity,
+.markers-panel .markers-table-container .monaco-list-row:hover .monaco-table-tr .monaco-table-td.quickFix .severity {
 	display: none;
 }
 
@@ -252,4 +259,42 @@
 .markers-panel .monaco-table-td .owner {
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.markers-panel .monaco-table-td .file .file-position {
+	margin-left: 6px;
+	opacity: 0.7;
+}
+
+.markers-panel .monaco-table-td .message .source-label {
+	margin-left: 6px;
+	opacity: 0.7;
+}
+
+.markers-panel .monaco-table-td .message .monaco-link::before,
+.markers-panel .monaco-table-td .message .code-label::before {
+	content: '(';
+}
+
+.markers-panel .monaco-table-td .message .monaco-link::after,
+.markers-panel .monaco-table-td .message .code-label::after {
+	content: ')';
+}
+
+
+.markers-panel .monaco-table-td .message .code-label {
+	opacity: 0.7;
+}
+
+.markers-panel .monaco-table-td .code .monaco-link {
+	text-decoration: underline;
+}
+
+.markers-panel .monaco-list-row.focused.selected .monaco-table-td .code .monaco-link,
+.markers-panel .monaco-list-row.focused.selected .monaco-table-td .code .monaco-link .highlight {
+	color: white;
+}
+
+.markers-panel .markers-table-container .monaco-table-tr .monaco-table-td .highlight {
+	font-weight: bold;
 }
