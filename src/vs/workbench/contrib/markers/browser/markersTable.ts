@@ -31,6 +31,7 @@ const $ = DOM.$;
 
 export interface IMarkerTableItem {
 	marker: Marker;
+	sourceMatches?: IMatch[];
 	codeMatches?: IMatch[];
 	messageMatches?: IMatch[];
 	fileMatches?: IMatch[];
@@ -145,12 +146,16 @@ class MarkerMessageColumnRenderer implements ITableRenderer<IMarkerTableItem, IM
 
 		if (element.marker.marker.source && element.marker.marker.code) {
 			if (typeof element.marker.marker.code === 'string') {
-				templateData.codeLink.el.style.display = 'none';
-				templateData.sourceLabel.set(element.marker.marker.source, element.codeMatches);
-				templateData.codeLabel.set(element.marker.marker.code, undefined);
+				DOM.hide(templateData.codeLink.el);
+				DOM.show(templateData.codeLabel.element);
+
+				templateData.sourceLabel.set(element.marker.marker.source, element.sourceMatches);
+				templateData.codeLabel.set(element.marker.marker.code, element.codeMatches);
 			} else {
-				templateData.codeLabel.element.style.display = 'none';
-				templateData.sourceLabel.set(`${element.marker.marker.source}`, element.codeMatches);
+				DOM.hide(templateData.codeLabel.element);
+				DOM.show(templateData.codeLink.el);
+
+				templateData.sourceLabel.set(element.marker.marker.source, element.sourceMatches);
 				templateData.codeLink!.el.href = element.marker.marker.code.target.toString();
 				templateData.codeLink!.el.title = element.marker.marker.code.target.toString();
 				templateData.codeLinkLabel.set(element.marker.marker.code.value, element.codeMatches);
@@ -344,14 +349,15 @@ export class MarkersTable extends Disposable {
 
 			// Text filter
 			if (filterOptions.textFilter.text) {
+				const sourceMatches = marker.marker.source ? FilterOptions._filter(filterOptions.textFilter.text, marker.marker.source) ?? undefined : undefined;
 				const codeMatches = marker.marker.code ? FilterOptions._filter(filterOptions.textFilter.text, typeof marker.marker.code === 'string' ? marker.marker.code : marker.marker.code.value) ?? undefined : undefined;
 				const messageMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.message) ?? undefined;
 				const fileMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, this.labelService.getUriLabel(marker.resource, { relative: true })) ?? undefined;
 				const ownerMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.owner) ?? undefined;
 
-				const matched = codeMatches || messageMatches || fileMatches || ownerMatches;
+				const matched = sourceMatches || codeMatches || messageMatches || fileMatches || ownerMatches;
 				if ((matched && !filterOptions.textFilter.negate) || (!matched && filterOptions.textFilter.negate)) {
-					items.push({ marker, codeMatches, messageMatches, fileMatches, ownerMatches });
+					items.push({ marker, sourceMatches, codeMatches, messageMatches, fileMatches, ownerMatches });
 				}
 
 				continue;
