@@ -28,6 +28,7 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 	instances: ITerminalInstance[] = [];
 	private _activeInstanceIndex: number = -1;
 	private _isShuttingDown = false;
+	private _willReviveProcesses = false;
 
 	private _editorInputs: Map</*resource*/string, TerminalEditorInput> = new Map();
 	private _instanceDisposables: Map</*resource*/string, IDisposable[]> = new Map();
@@ -85,7 +86,15 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 				this.instances.push(unknownEditor.terminalInstance);
 			}
 		}));
-		this._register(this.onDidDisposeInstance(instance => this.detachInstance(instance)));
+		lifecycleService.onBeforeShutdown(() => {
+			// TODO: Get actual value
+			this._willReviveProcesses = true;
+		});
+		this._register(this.onDidDisposeInstance(instance => {
+			if (!this._willReviveProcesses) {
+				this.detachInstance(instance);
+			}
+		}));
 
 		// Remove the terminal from the managed instances when the editor closes. This fires when
 		// dragging and dropping to another editor or closing the editor via cmd/ctrl+w.
@@ -261,6 +270,7 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 	}
 
 	reviveInput(deserializedInput: DeserializedTerminalEditorInput): TerminalEditorInput {
+		console.log('reviveInput');
 		const resource: URI = URI.isUri(deserializedInput) ? deserializedInput : deserializedInput.resource;
 		const inputKey = resource.path;
 
@@ -269,8 +279,10 @@ export class TerminalEditorService extends Disposable implements ITerminalEditor
 			instance.target = TerminalLocation.Editor;
 			const input = this._instantiationService.createInstance(TerminalEditorInput, resource, instance);
 			this._registerInstance(inputKey, input, instance);
+			console.log('Success');
 			return input;
 		} else {
+			console.log('Fail');
 			throw new Error(`Could not revive terminal editor input, ${deserializedInput}`);
 		}
 	}

@@ -21,16 +21,20 @@ export class TerminalInputSerializer implements IEditorSerializer {
 	}
 
 	public serialize(editorInput: TerminalEditorInput): string | undefined {
-		if (!editorInput.terminalInstance?.persistentProcessId) {
+		console.log('try serialize');
+		if (!editorInput.terminalInstance || editorInput.persistentProcessId === undefined) {
+			console.log('  no ppid');
 			return;
 		}
 		const term = JSON.stringify(this._toJson(editorInput.terminalInstance));
+		console.log('  success');
 		return term;
 	}
 
 	public deserialize(instantiationService: IInstantiationService, serializedEditorInput: string): EditorInput | undefined {
 		const terminalInstance = JSON.parse(serializedEditorInput);
 		terminalInstance.resource = URI.parse(terminalInstance.resource);
+		console.log('deserialize', serializedEditorInput);
 		return this._terminalEditorService.reviveInput(terminalInstance);
 	}
 

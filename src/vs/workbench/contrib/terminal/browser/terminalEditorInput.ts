@@ -33,6 +33,8 @@ export class TerminalEditorInput extends EditorInput {
 
 	private _isDetached = false;
 	private _isShuttingDown = false;
+	private _willReviveProcesses = false;
+	private _persistentProcessId: number | undefined;
 	private _isReverted = false;
 	private _copyLaunchConfig?: IShellLaunchConfig;
 	private _terminalEditorFocusContextKey: IContextKey<boolean>;
@@ -55,11 +57,18 @@ export class TerminalEditorInput extends EditorInput {
 		return TerminalEditor.ID;
 	}
 
+	get persistentProcessId(): number | undefined { return this._persistentProcessId; }
+
 	setTerminalInstance(instance: ITerminalInstance): void {
 		if (this._terminalInstance) {
 			throw new Error('cannot set instance that has already been set');
 		}
 		this._terminalInstance = instance;
+
+		this._persistentProcessId = instance.persistentProcessId;
+		if (!this._persistentProcessId) {
+			instance.processReady.then(() => this._persistentProcessId = instance.persistentProcessId);
+		}
 		this._setupInstanceListeners();
 
 		// Refresh dirty state when the confirm on kill setting is changed
@@ -178,6 +187,12 @@ export class TerminalEditorInput extends EditorInput {
 			instance.onDidChangeHasChildProcesses(() => this._onDidChangeDirty.fire()),
 			instance.statusList.onDidChangePrimaryStatus(() => this._onDidChangeLabel.fire())
 		];
+
+		this._lifecycleService.onBeforeShutdown(() => {
+			// TODO: Get actual value
+			this._willReviveProcesses = true;
+			dispose(disposeListeners);
+		});
 
 		// Don't dispose editor when instance is torn down on shutdown to avoid extra work and so
 		// the editor/tabs don't disappear
