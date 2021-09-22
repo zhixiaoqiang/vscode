@@ -140,7 +140,7 @@ export interface MainThreadClipboardShape extends IDisposable {
 export interface MainThreadCommandsShape extends IDisposable {
 	$registerCommand(id: string): void;
 	$unregisterCommand(id: string): void;
-	$executeCommand<T>(id: string, args: any[], retry: boolean): Promise<T | undefined>;
+	$executeCommand<T>(id: string, args: any[] | SerializableObjectWithBuffers<any[]>, retry: boolean): Promise<T | undefined>;
 	$getCommands(): Promise<string[]>;
 }
 
@@ -645,6 +645,7 @@ export interface IEditorTabDto {
 	resource?: UriComponents;
 	editorId?: string;
 	isActive: boolean;
+	additionalResourcesAndViewIds: { resource?: UriComponents, viewId?: string }[]
 }
 
 export interface IExtHostEditorTabsShape {

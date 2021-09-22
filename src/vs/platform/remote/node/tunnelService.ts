@@ -12,7 +12,7 @@ import { IConfigurationService } from 'vs/platform/configuration/common/configur
 import { ILogService } from 'vs/platform/log/common/log';
 import { IProductService } from 'vs/platform/product/common/productService';
 import { connectRemoteAgentTunnel, IAddressProvider, IConnectionOptions, ISocketFactory } from 'vs/platform/remote/common/remoteAgentConnection';
-import { AbstractTunnelService, RemoteTunnel } from 'vs/platform/remote/common/tunnel';
+import { AbstractTunnelService, isAllInterfaces, isLocalhost, RemoteTunnel } from 'vs/platform/remote/common/tunnel';
 import { nodeSocketFactory } from 'vs/platform/remote/node/nodeSocketFactory';
 import { ISignService } from 'vs/platform/sign/common/sign';
 
@@ -98,7 +98,8 @@ class NodeRemoteTunnel extends Disposable implements RemoteTunnel {
 		// pause reading on the socket until we have a chance to forward its data
 		localSocket.pause();
 
-		const protocol = await connectRemoteAgentTunnel(this._options, this.tunnelRemoteHost, this.tunnelRemotePort);
+		const tunnelRemoteHost = (isLocalhost(this.tunnelRemoteHost) || isAllInterfaces(this.tunnelRemoteHost)) ? 'localhost' : this.tunnelRemoteHost;
+		const protocol = await connectRemoteAgentTunnel(this._options, tunnelRemoteHost, this.tunnelRemotePort);
 		const remoteSocket = (<NodeSocket>protocol.getSocket()).socket;
 		const dataChunk = protocol.readEntireBuffer();
 		protocol.dispose();

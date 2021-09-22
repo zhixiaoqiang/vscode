@@ -227,7 +227,7 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 		}));
 		this._register(this.viewDescriptorService.onDidChangeLocation(({ views, from, to }) => {
 			if (views.some(v => v.id === this.id)) {
-				this.tree?.updateOptions({ overrideStyles: { listBackground: this.viewLocation === ViewContainerLocation.Sidebar ? SIDE_BAR_BACKGROUND : PANEL_BACKGROUND } });
+				this.tree?.updateOptions({ overrideStyles: { listBackground: this.viewLocation === ViewContainerLocation.Panel ? PANEL_BACKGROUND : SIDE_BAR_BACKGROUND } });
 			}
 		}));
 		this.registerActions();
@@ -872,9 +872,7 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 	) {
 		super();
 		this._hoverDelegate = {
-			showHover: (options: IHoverDelegateOptions): IDisposable | undefined => {
-				return this.hoverService.showHover(options);
-			},
+			showHover: (options: IHoverDelegateOptions) => this.hoverService.showHover(options),
 			delay: <number>this.configurationService.getValue('workbench.hover.delay')
 		};
 	}
