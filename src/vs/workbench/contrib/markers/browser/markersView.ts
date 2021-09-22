@@ -73,6 +73,10 @@ export const enum MarkersViewMode {
 	Tree = 'tree'
 }
 
+export interface IProblemsWidget {
+
+}
+
 export class MarkersView extends ViewPane implements IMarkersView {
 
 	private lastSelectedRelativeTop: number = 0;
@@ -962,7 +966,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 
 }
 
-class MarkersTree extends WorkbenchObjectTree<MarkerElement, FilterData> {
+class MarkersTree extends WorkbenchObjectTree<MarkerElement, FilterData> implements IProblemsWidget {
 
 	constructor(
 		user: string,

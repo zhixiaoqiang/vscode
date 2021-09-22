@@ -5,6 +5,7 @@
 
 import { localize } from 'vs/nls';
 import * as DOM from 'vs/base/browser/dom';
+import * as network from 'vs/base/common/network';
 import { Event } from 'vs/base/common/event';
 import { ITableContextMenuEvent, ITableRenderer, ITableVirtualDelegate } from 'vs/base/browser/ui/table/table';
 import { Disposable } from 'vs/base/common/lifecycle';
@@ -26,6 +27,7 @@ import { QuickFixAction, QuickFixActionViewItem } from 'vs/workbench/contrib/mar
 import { DomEmitter } from 'vs/base/browser/event';
 import Messages from 'vs/workbench/contrib/markers/browser/messages';
 import { isUndefinedOrNull } from 'vs/base/common/types';
+import { IProblemsWidget } from 'vs/workbench/contrib/markers/browser/markersView';
 
 const $ = DOM.$;
 
@@ -213,7 +215,17 @@ class MarkerOwnerColumnRenderer implements ITableRenderer<IMarkerTableItem, IMar
 	disposeTemplate(templateData: IMarkerHighlightedLabelColumnTemplateData): void { }
 }
 
-export class MarkersTable extends Disposable {
+class MarkersTableVirtualDelegate implements ITableVirtualDelegate<any> {
+	static readonly HEADER_ROW_HEIGHT = 24;
+	static readonly ROW_HEIGHT = 24;
+	readonly headerRowHeight = MarkersTableVirtualDelegate.HEADER_ROW_HEIGHT;
+
+	getHeight(item: any) {
+		return MarkersTableVirtualDelegate.ROW_HEIGHT;
+	}
+}
+
+export class MarkersTable extends Disposable implements IProblemsWidget {
 
 	private _itemCount: number = 0;
 	private readonly table: WorkbenchTable<IMarkerTableItem>;
@@ -255,7 +267,7 @@ export class MarkersTable extends Disposable {
 					project(row: Marker): Marker { return row; }
 				},
 				{
-					label: localize('ownerColumnLabel', "Owner"),
+					label: localize('sourceColumnLabel', "Source"),
 					tooltip: '',
 					weight: 1,
 					templateId: MarkerOwnerColumnRenderer.TEMPLATE_ID,
@@ -328,6 +340,21 @@ export class MarkersTable extends Disposable {
 		const items: IMarkerTableItem[] = [];
 
 		for (const marker of markers) {
+			if (marker.resource.scheme === network.Schemas.walkThrough || marker.resource.scheme === network.Schemas.walkThroughSnippet) {
+				continue;
+			}
+
+			// Exclude pattern
+			if (filterOptions.excludesMatcher.matches(marker.resource)) {
+				continue;
+			}
+
+			// Include pattern
+			if (filterOptions.includesMatcher.matches(marker.resource)) {
+				items.push({ marker });
+				continue;
+			}
+
 			// Severity filter
 			const matchesSeverity = filterOptions.showErrors && MarkerSeverity.Error === marker.marker.severity ||
 				filterOptions.showWarnings && MarkerSeverity.Warning === marker.marker.severity ||
@@ -336,16 +363,6 @@ export class MarkersTable extends Disposable {
 			if (!matchesSeverity) {
 				continue;
 			}
-
-			// // Include pattern
-			// if (filterOptions.filter && !filterOptions.includesMatcher.matches(marker.resource)) {
-			// 	continue;
-			// }
-
-			// // Exclude pattern
-			// if (filterOptions.filter && filterOptions.excludesMatcher.matches(marker.resource)) {
-			// 	continue;
-			// }
 
 			// Text filter
 			if (filterOptions.textFilter.text) {
@@ -368,15 +385,5 @@ export class MarkersTable extends Disposable {
 
 		this._itemCount = items.length;
 		this.table.splice(0, Number.POSITIVE_INFINITY, items.sort((a, b) => MarkerSeverity.compare(a.marker.marker.severity, b.marker.marker.severity)));
-	}
-}
-
-class MarkersTableVirtualDelegate implements ITableVirtualDelegate<any> {
-	static readonly HEADER_ROW_HEIGHT = 30;
-	static readonly ROW_HEIGHT = 24;
-	readonly headerRowHeight = MarkersTableVirtualDelegate.HEADER_ROW_HEIGHT;
-
-	getHeight(item: any) {
-		return MarkersTableVirtualDelegate.ROW_HEIGHT;
 	}
 }
