@@ -46,12 +46,11 @@ interface IMarkerIconColumnTemplateData {
 }
 
 interface IMarkerMessageColumnTemplateData {
+	readonly messageColumn: HTMLElement;
 	readonly messageLabel: HighlightedLabel;
 	readonly sourceLabel: HighlightedLabel;
 	readonly codeLabel: HighlightedLabel;
 	readonly codeLink: Link;
-	readonly codeLinkLabel: HighlightedLabel;
-
 }
 
 interface IMarkerFileColumnTemplateData {
@@ -133,34 +132,31 @@ class MarkerMessageColumnRenderer implements ITableRenderer<IMarkerTableItem, IM
 		const codeLabel = new HighlightedLabel(messageColumn, false);
 		codeLabel.element.classList.add('code-label');
 
-		const codeLink = new Link({ href: '', label: '', title: '' }, undefined, this.openerService);
-		DOM.append(messageColumn, codeLink.el);
-		const codeLinkLabel = new HighlightedLabel(codeLink.el, false);
+		const codeLink = new Link(messageColumn, { href: '', label: '' }, {}, this.openerService);
 
-		const sourceLinkLabel = new HighlightedLabel(messageColumn, false);
-		sourceLinkLabel.element.classList.add('source-label');
-
-		return { messageLabel, sourceLabel, codeLabel, codeLink, codeLinkLabel };
+		return { messageColumn, messageLabel, sourceLabel, codeLabel, codeLink };
 	}
 
 	renderElement(element: IMarkerTableItem, index: number, templateData: IMarkerMessageColumnTemplateData, height: number | undefined): void {
 		templateData.messageLabel.set(element.marker.marker.message, element.messageMatches);
 
 		if (element.marker.marker.source && element.marker.marker.code) {
-			if (typeof element.marker.marker.code === 'string') {
-				DOM.hide(templateData.codeLink.el);
-				DOM.show(templateData.codeLabel.element);
+			templateData.messageColumn.classList.toggle('code-link', typeof element.marker.marker.code !== 'string');
 
+			if (typeof element.marker.marker.code === 'string') {
 				templateData.sourceLabel.set(element.marker.marker.source, element.sourceMatches);
 				templateData.codeLabel.set(element.marker.marker.code, element.codeMatches);
 			} else {
-				DOM.hide(templateData.codeLabel.element);
-				DOM.show(templateData.codeLink.el);
-
 				templateData.sourceLabel.set(element.marker.marker.source, element.sourceMatches);
-				templateData.codeLink!.el.href = element.marker.marker.code.target.toString();
-				templateData.codeLink!.el.title = element.marker.marker.code.target.toString();
-				templateData.codeLinkLabel.set(element.marker.marker.code.value, element.codeMatches);
+
+				const codeLinkLabel = new HighlightedLabel($('.code-link-label'), false);
+				codeLinkLabel.set(element.marker.marker.code.value, element.codeMatches);
+
+				templateData.codeLink.link = {
+					href: element.marker.marker.code.target.toString(),
+					title: element.marker.marker.code.target.toString(),
+					label: codeLinkLabel.element,
+				};
 			}
 		}
 	}

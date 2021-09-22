@@ -266,6 +266,18 @@
 	opacity: 0.7;
 }
 
+.markers-panel .monaco-table-td .message.code-link .code-label {
+	display: none;
+}
+
+.markers-panel .monaco-table-td .message .monaco-link {
+	display: none;
+}
+
+.markers-panel .monaco-table-td .message.code-link .monaco-link {
+	display: inline;
+}
+
 .markers-panel .monaco-table-td .message .source-label {
 	margin-left: 6px;
 	opacity: 0.7;
