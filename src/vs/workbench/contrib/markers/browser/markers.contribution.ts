@@ -321,7 +321,7 @@ registerAction2(class extends ViewAction<IMarkersView> {
 				id: MenuId.ViewTitle,
 				when: ContextKeyExpr.and(ContextKeyExpr.equals('view', Constants.MARKERS_VIEW_ID), Constants.MarkersViewModeContextKey.isEqualTo(MarkersViewMode.Table)),
 				group: 'navigation',
-				order: 2
+				order: 3
 			},
 			icon: Codicon.listTree,
 			viewId: Constants.MARKERS_VIEW_ID
@@ -342,7 +342,7 @@ registerAction2(class extends ViewAction<IMarkersView> {
 				id: MenuId.ViewTitle,
 				when: ContextKeyExpr.and(ContextKeyExpr.equals('view', Constants.MARKERS_VIEW_ID), Constants.MarkersViewModeContextKey.isEqualTo(MarkersViewMode.Tree)),
 				group: 'navigation',
-				order: 2
+				order: 3
 			},
 			icon: Codicon.listFlat,
 			viewId: Constants.MARKERS_VIEW_ID
@@ -363,7 +363,7 @@ registerAction2(class extends ViewAction<IMarkersView> {
 				id: MenuId.ViewTitle,
 				when: ContextKeyExpr.and(ContextKeyExpr.equals('view', Constants.MARKERS_VIEW_ID), Constants.MarkersViewModeContextKey.isEqualTo(MarkersViewMode.Tree)),
 				group: 'navigation',
-				order: 3,
+				order: 2,
 			},
 			icon: Codicon.collapseAll,
 			viewId: Constants.MARKERS_VIEW_ID
