@@ -12,7 +12,7 @@ import { Disposable } from 'vs/base/common/lifecycle';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { IOpenEvent, WorkbenchTable } from 'vs/platform/list/browser/listService';
 import { HighlightedLabel } from 'vs/base/browser/ui/highlightedlabel/highlightedLabel';
-import { Marker } from 'vs/workbench/contrib/markers/browser/markersModel';
+import { Marker, ResourceMarkers } from 'vs/workbench/contrib/markers/browser/markersModel';
 import { MarkerSeverity } from 'vs/platform/markers/common/markers';
 import { SeverityIcon } from 'vs/platform/severityIcon/common/severityIcon';
 import { ActionBar } from 'vs/base/browser/ui/actionbar/actionbar';
@@ -28,6 +28,7 @@ import { DomEmitter } from 'vs/base/browser/event';
 import Messages from 'vs/workbench/contrib/markers/browser/messages';
 import { isUndefinedOrNull } from 'vs/base/common/types';
 import { IProblemsWidget } from 'vs/workbench/contrib/markers/browser/markersView';
+import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 
 const $ = DOM.$;
 
@@ -229,6 +230,7 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 	constructor(
 		private readonly container: HTMLElement,
 		private readonly markersViewModel: MarkersViewModel,
+		@IContextKeyService readonly contextKeyService: IContextKeyService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ILabelService private readonly labelService: ILabelService,
 	) {
@@ -304,20 +306,40 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		});
 	}
 
-	get itemCount(): number {
-		return this._itemCount;
-	}
-
-	get on(): Event<ITableContextMenuEvent<IMarkerTableItem>> {
-		return this.table.onContextMenu;
-	}
-
 	get onContextMenu(): Event<ITableContextMenuEvent<IMarkerTableItem>> {
 		return this.table.onContextMenu;
 	}
 
 	get onDidOpen(): Event<IOpenEvent<IMarkerTableItem | undefined>> {
 		return this.table.onDidOpen;
+	}
+
+	collapseMarkers(): void { }
+
+	domFocus(): void {
+		this.table.domFocus();
+	}
+
+	filterMarkers(): void { }
+
+	getFocus(): (Marker | null)[] {
+		return [];
+	}
+
+	getHTMLElement(): HTMLElement {
+		return this.table.getHTMLElement();
+	}
+
+	getRelativeTop(location: Marker | null): number | null {
+		return null;
+	}
+
+	getSelection(): any {
+		return this.table.getSelection();
+	}
+
+	getVisibleItemCount(): number {
+		return this._itemCount;
 	}
 
 	isVisible(): boolean {
@@ -328,58 +350,84 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		this.table.layout(height, width);
 	}
 
+	reset(resourceMarkers: ResourceMarkers[]): void {
+		const items: IMarkerTableItem[] = [];
+		for (const resourceMarker of resourceMarkers) {
+			for (const marker of resourceMarker.markers) {
+				items.push({ marker });
+			}
+		}
+		this._itemCount = items.length;
+		this.table.splice(0, Number.POSITIVE_INFINITY, items.sort((a, b) => MarkerSeverity.compare(a.marker.marker.severity, b.marker.marker.severity)));
+	}
+
+	revealMarkers(activeResource: ResourceMarkers | null, focus: boolean): void { }
+
+	setAriaLabel(label: string): void {
+		this.table.domNode.ariaLabel = label;
+	}
+
+	setMarkerSelection(): void {
+	}
+
 	toggleVisibility(hide: boolean): void {
 		this.container.classList.toggle('hidden', hide);
 	}
 
-	updateTable(markers: Marker[], filterOptions: FilterOptions): void {
-		const items: IMarkerTableItem[] = [];
-
-		for (const marker of markers) {
-			if (marker.resource.scheme === network.Schemas.walkThrough || marker.resource.scheme === network.Schemas.walkThroughSnippet) {
-				continue;
-			}
-
-			// Exclude pattern
-			if (filterOptions.excludesMatcher.matches(marker.resource)) {
-				continue;
-			}
-
-			// Include pattern
-			if (filterOptions.includesMatcher.matches(marker.resource)) {
-				items.push({ marker });
-				continue;
-			}
-
-			// Severity filter
-			const matchesSeverity = filterOptions.showErrors && MarkerSeverity.Error === marker.marker.severity ||
-				filterOptions.showWarnings && MarkerSeverity.Warning === marker.marker.severity ||
-				filterOptions.showInfos && MarkerSeverity.Info === marker.marker.severity;
-
-			if (!matchesSeverity) {
-				continue;
-			}
-
-			// Text filter
-			if (filterOptions.textFilter.text) {
-				const sourceMatches = marker.marker.source ? FilterOptions._filter(filterOptions.textFilter.text, marker.marker.source) ?? undefined : undefined;
-				const codeMatches = marker.marker.code ? FilterOptions._filter(filterOptions.textFilter.text, typeof marker.marker.code === 'string' ? marker.marker.code : marker.marker.code.value) ?? undefined : undefined;
-				const messageMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.message) ?? undefined;
-				const fileMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, this.labelService.getUriLabel(marker.resource, { relative: true })) ?? undefined;
-				const ownerMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.owner) ?? undefined;
-
-				const matched = sourceMatches || codeMatches || messageMatches || fileMatches || ownerMatches;
-				if ((matched && !filterOptions.textFilter.negate) || (!matched && filterOptions.textFilter.negate)) {
-					items.push({ marker, sourceMatches, codeMatches, messageMatches, fileMatches, ownerMatches });
-				}
-
-				continue;
-			}
-
-			items.push({ marker });
-		}
-
-		this._itemCount = items.length;
-		this.table.splice(0, Number.POSITIVE_INFINITY, items.sort((a, b) => MarkerSeverity.compare(a.marker.marker.severity, b.marker.marker.severity)));
+	update(resourceMarkers: ResourceMarkers[]): void {
 	}
+
+	updateMarker(marker: Marker): void {
+	}
+
+	// updateTable(markers: Marker[], filterOptions: FilterOptions): void {
+	// 	const items: IMarkerTableItem[] = [];
+
+	// 	for (const marker of markers) {
+	// 		if (marker.resource.scheme === network.Schemas.walkThrough || marker.resource.scheme === network.Schemas.walkThroughSnippet) {
+	// 			continue;
+	// 		}
+
+	// 		// Exclude pattern
+	// 		if (filterOptions.excludesMatcher.matches(marker.resource)) {
+	// 			continue;
+	// 		}
+
+	// 		// Include pattern
+	// 		if (filterOptions.includesMatcher.matches(marker.resource)) {
+	// 			items.push({ marker });
+	// 			continue;
+	// 		}
+
+	// 		// Severity filter
+	// 		const matchesSeverity = filterOptions.showErrors && MarkerSeverity.Error === marker.marker.severity ||
+	// 			filterOptions.showWarnings && MarkerSeverity.Warning === marker.marker.severity ||
+	// 			filterOptions.showInfos && MarkerSeverity.Info === marker.marker.severity;
+
+	// 		if (!matchesSeverity) {
+	// 			continue;
+	// 		}
+
+	// 		// Text filter
+	// 		if (filterOptions.textFilter.text) {
+	// 			const sourceMatches = marker.marker.source ? FilterOptions._filter(filterOptions.textFilter.text, marker.marker.source) ?? undefined : undefined;
+	// 			const codeMatches = marker.marker.code ? FilterOptions._filter(filterOptions.textFilter.text, typeof marker.marker.code === 'string' ? marker.marker.code : marker.marker.code.value) ?? undefined : undefined;
+	// 			const messageMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.message) ?? undefined;
+	// 			const fileMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, this.labelService.getUriLabel(marker.resource, { relative: true })) ?? undefined;
+	// 			const ownerMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.owner) ?? undefined;
+
+	// 			const matched = sourceMatches || codeMatches || messageMatches || fileMatches || ownerMatches;
+	// 			if ((matched && !filterOptions.textFilter.negate) || (!matched && filterOptions.textFilter.negate)) {
+	// 				items.push({ marker, sourceMatches, codeMatches, messageMatches, fileMatches, ownerMatches });
+	// 			}
+
+	// 			continue;
+	// 		}
+
+	// 		items.push({ marker });
+	// 	}
+
+	// 	this._itemCount = items.length;
+	// 	this.table.splice(0, Number.POSITIVE_INFINITY, items.sort((a, b) => MarkerSeverity.compare(a.marker.marker.severity, b.marker.marker.severity)));
+	// }
 }
