@@ -286,6 +286,7 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 
 		const list = this.table.domNode.querySelector('.monaco-list-rows')! as HTMLElement;
 
+		// TODO - clean this up
 		const onMouseOver = new DomEmitter(list, 'mouseover');
 		const onRowHover = Event.chain(onMouseOver.event)
 			.map(e => DOM.findParentWithClass(e.target as HTMLElement, 'monaco-list-row', 'monaco-list-rows'))

@@ -75,6 +75,7 @@ export const enum MarkersViewMode {
 export interface IProblemsWidget {
 	get contextKeyService(): IContextKeyService;
 	collapseMarkers(): void;
+	dispose(): void;
 	domFocus(): void;
 	filterMarkers(resourceMarkers: ResourceMarkers[], filterOptions: FilterOptions): void;
 	getFocus(): (MarkerElement | null)[];
@@ -103,6 +104,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 	private readonly onVisibleDisposables = this._register(new DisposableStore());
 
 	private widget!: IProblemsWidget;
+	private widgetContainer!: HTMLElement;
 	private filterActionBar: ActionBar | undefined;
 	private messageBoxContainer: HTMLElement | undefined;
 	private ariaLabelElement: HTMLElement | undefined;
@@ -156,7 +158,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		this.markersModel = this._register(instantiationService.createInstance(MarkersModel));
 		this.markersViewModel = this._register(instantiationService.createInstance(MarkersViewModel, this.panelState['multiline'], this.panelState['viewMode']));
 		this._register(this.onDidChangeVisibility(visible => this.onDidChangeMarkersViewVisibility(visible)));
-		this._register(this.markersViewModel.onDidChangeViewMode(_ => this.refreshPanel()));
+		this._register(this.markersViewModel.onDidChangeViewMode(_ => this.onDidChangeViewMode()));
 
 		this.setCurrentActiveEditor();
 
@@ -184,12 +186,12 @@ export class MarkersView extends ViewPane implements IMarkersView {
 
 		parent.classList.add('markers-panel');
 
-		const container = dom.append(parent, dom.$('.markers-panel-container'));
+		this.widgetContainer = dom.append(parent, dom.$('.markers-panel-container'));
 
-		this.createFilterActionBar(container);
-		this.createArialLabelElement(container);
-		this.createMessageBox(container);
-		this.createWidget(container);
+		this.createFilterActionBar(this.widgetContainer);
+		this.createArialLabelElement(this.widgetContainer);
+		this.createMessageBox(this.widgetContainer);
+		this.createWidget(this.widgetContainer);
 
 		this.updateFilter();
 
@@ -508,16 +510,6 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		this.markersViewModel.viewMode = viewMode;
 	}
 
-	private onDidChangeMarkersViewVisibility(visible: boolean): void {
-		this.onVisibleDisposables.clear();
-		if (visible) {
-			for (const disposable of this.reInitialize()) {
-				this.onVisibleDisposables.add(disposable);
-			}
-			this.refreshPanel();
-		}
-	}
-
 	private reInitialize(): IDisposable[] {
 		const disposables = [];
 
@@ -561,6 +553,16 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		return disposables;
 	}
 
+	private onDidChangeMarkersViewVisibility(visible: boolean): void {
+		this.onVisibleDisposables.clear();
+		if (visible) {
+			for (const disposable of this.reInitialize()) {
+				this.onVisibleDisposables.add(disposable);
+			}
+			this.refreshPanel();
+		}
+	}
+
 	private onDidChangeModel(change: MarkerChangesEvent): void {
 		const resourceMarkers = [...change.added, ...change.removed, ...change.updated];
 		const resources: URI[] = [];
@@ -581,6 +583,16 @@ export class MarkersView extends ViewPane implements IMarkersView {
 			this.autoReveal();
 			this.currentResourceGotAddedToMarkersData = false;
 		}
+	}
+
+	private onDidChangeViewMode(): void {
+		if (this.widgetContainer && this.widget) {
+			this.widgetContainer.textContent = '';
+			this.widget.dispose();
+		}
+
+		this.createWidget(this.widgetContainer);
+		this.refreshPanel();
 	}
 
 	private isCurrentResourceGotAddedToMarkersData(changedResources: URI[]) {
