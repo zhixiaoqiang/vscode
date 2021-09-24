@@ -76,14 +76,14 @@ export interface IProblemsWidget {
 	get contextKeyService(): IContextKeyService;
 	collapseMarkers(): void;
 	domFocus(): void;
-	filterMarkers(): void;
+	filterMarkers(resourceMarkers: ResourceMarkers[], filterOptions: FilterOptions): void;
 	getFocus(): (MarkerElement | null)[];
 	getHTMLElement(): HTMLElement;
 	getRelativeTop(location: MarkerElement | null): number | null;
 	getSelection(): (MarkerElement | null)[];
 	getVisibleItemCount(): number;
 	layout(height: number, width: number): void;
-	reset(resourceMarkers: ResourceMarkers[]): void;
+	reset(resourceMarkers: ResourceMarkers[], filterOptions: FilterOptions): void;
 	revealMarkers(activeResource: ResourceMarkers | null, focus: boolean, lastSelectedRelativeTop: number): void;
 	setAriaLabel(label: string): void;
 	setMarkerSelection(): void;
@@ -154,7 +154,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		this.panelState = new Memento(Constants.MARKERS_VIEW_STORAGE_ID, storageService).getMemento(StorageScope.WORKSPACE, StorageTarget.USER);
 
 		this.markersModel = this._register(instantiationService.createInstance(MarkersModel));
-		this.markersViewModel = this._register(instantiationService.createInstance(MarkersViewModel, this.panelState['multiline']));
+		this.markersViewModel = this._register(instantiationService.createInstance(MarkersViewModel, this.panelState['multiline'], this.panelState['viewMode']));
 		this._register(this.onDidChangeVisibility(visible => this.onDidChangeMarkersViewVisibility(visible)));
 		this._register(this.markersViewModel.onDidChangeViewMode(_ => this.refreshPanel()));
 
@@ -327,31 +327,12 @@ export class MarkersView extends ViewPane implements IMarkersView {
 	}
 
 	private resetWidget(): void {
-		let resourceMarkers: ResourceMarkers[] = [];
-		if (this.filters.activeFile) {
-			if (this.currentActiveResource) {
-				const activeResourceMarkers = this.markersModel.getResourceMarkers(this.currentActiveResource);
-				if (activeResourceMarkers) {
-					resourceMarkers = [activeResourceMarkers];
-				}
-			}
-		} else {
-			resourceMarkers = this.markersModel.resourceMarkers;
-		}
-		this.widget.reset(resourceMarkers);
+		this.widget.reset(this.getResourceMarkers(), this.filter.options);
 	}
 
-	private updateFilter() {
+	private updateFilter(): void {
 		this.filter.options = new FilterOptions(this.filters.filterText, this.getFilesExcludeExpressions(), this.filters.showWarnings, this.filters.showErrors, this.filters.showInfos, this.uriIdentityService);
-		this.resetWidget();
-
-		// if (this.tree && this.markersViewModel.viewMode === MarkersViewMode.Tree) {
-		// 	this.tree.refilter();
-		// }
-
-		// if (this.table && this.markersViewModel.viewMode === MarkersViewMode.Table) {
-		// 	this.resetTable();
-		// }
+		this.widget.filterMarkers(this.getResourceMarkers(), this.filter.options);
 
 		this.cachedFilterStats = undefined;
 		const { total, filtered } = this.getFilterStats();
@@ -360,7 +341,6 @@ export class MarkersView extends ViewPane implements IMarkersView {
 
 		this._onDidChangeFilterStats.fire(this.getFilterStats());
 	}
-
 	private getFilesExcludeExpressions(): { root: URI, expression: IExpression }[] | IExpression {
 		if (!this.filters.excludedFiles) {
 			return [];
@@ -374,6 +354,22 @@ export class MarkersView extends ViewPane implements IMarkersView {
 
 	private getFilesExclude(resource?: URI): IExpression {
 		return deepClone(this.configurationService.getValue('files.exclude', { resource })) || {};
+	}
+
+	private getResourceMarkers(): ResourceMarkers[] {
+		if (!this.filters.activeFile) {
+			return this.markersModel.resourceMarkers;
+		}
+
+		let resourceMarkers: ResourceMarkers[] = [];
+		if (this.currentActiveResource) {
+			const activeResourceMarkers = this.markersModel.getResourceMarkers(this.currentActiveResource);
+			if (activeResourceMarkers) {
+				resourceMarkers = [activeResourceMarkers];
+			}
+		}
+
+		return resourceMarkers;
 	}
 
 	private createFilterActionBar(parent: HTMLElement): void {
@@ -670,7 +666,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		}
 	}
 
-	private renderFilteredByFilterMessage(container: HTMLElement) {
+	private renderFilteredByFilterMessage(container: HTMLElement): void {
 		const span1 = dom.append(container, dom.$('span'));
 		span1.textContent = Messages.MARKERS_PANEL_NO_PROBLEMS_FILTERS;
 		const link = dom.append(container, dom.$('a.messageAction'));
@@ -688,13 +684,13 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		this.setAriaLabel(Messages.MARKERS_PANEL_NO_PROBLEMS_FILTERS);
 	}
 
-	private renderNoProblemsMessageForActiveFile(container: HTMLElement) {
+	private renderNoProblemsMessageForActiveFile(container: HTMLElement): void {
 		const span = dom.append(container, dom.$('span'));
 		span.textContent = Messages.MARKERS_PANEL_NO_PROBLEMS_ACTIVE_FILE_BUILT;
 		this.setAriaLabel(Messages.MARKERS_PANEL_NO_PROBLEMS_ACTIVE_FILE_BUILT);
 	}
 
-	private renderNoProblemsMessage(container: HTMLElement) {
+	private renderNoProblemsMessage(container: HTMLElement): void {
 		const span = dom.append(container, dom.$('span'));
 		span.textContent = Messages.MARKERS_PANEL_NO_PROBLEMS_BUILT;
 		this.setAriaLabel(Messages.MARKERS_PANEL_NO_PROBLEMS_BUILT);
@@ -730,14 +726,14 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		return this.currentActiveResource ? this.markersModel.getResourceMarkers(this.currentActiveResource) : null;
 	}
 
-	private updateRangeHighlights() {
+	private updateRangeHighlights(): void {
 		this.rangeHighlightDecorations.removeHighlightRange();
 		if (this.widget.getHTMLElement() === document.activeElement) {
 			this.highlightCurrentSelectedMarkerRange();
 		}
 	}
 
-	private highlightCurrentSelectedMarkerRange() {
+	private highlightCurrentSelectedMarkerRange(): void {
 		const selections = this.widget.getSelection() ?? [];
 
 		if (selections.length !== 1) {
@@ -865,7 +861,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		super.saveState();
 	}
 
-	override dispose() {
+	override dispose(): void {
 		super.dispose();
 	}
 }

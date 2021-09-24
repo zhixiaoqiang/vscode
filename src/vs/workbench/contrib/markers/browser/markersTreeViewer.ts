@@ -711,14 +711,16 @@ export class MarkersViewModel extends Disposable {
 
 	constructor(
 		multiline: boolean = true,
+		viewMode: MarkersViewMode = MarkersViewMode.Tree,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService
 	) {
 		super();
 		this._multiline = multiline;
+		this._viewMode = viewMode;
 
 		this.viewModeContextKey = Constants.MarkersViewModeContextKey.bindTo(this.contextKeyService);
-		this.viewModeContextKey.set(MarkersViewMode.Tree);
+		this.viewModeContextKey.set(viewMode);
 	}
 
 	add(marker: Marker): void {

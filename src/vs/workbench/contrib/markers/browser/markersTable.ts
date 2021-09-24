@@ -320,7 +320,9 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		this.table.domFocus();
 	}
 
-	filterMarkers(): void { }
+	filterMarkers(resourceMarkers: ResourceMarkers[], filterOptions: FilterOptions): void {
+		this.reset(resourceMarkers, filterOptions);
+	}
 
 	getFocus(): (Marker | null)[] {
 		return [];
@@ -350,10 +352,50 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		this.table.layout(height, width);
 	}
 
-	reset(resourceMarkers: ResourceMarkers[]): void {
+	reset(resourceMarkers: ResourceMarkers[], filterOptions: FilterOptions): void {
 		const items: IMarkerTableItem[] = [];
 		for (const resourceMarker of resourceMarkers) {
 			for (const marker of resourceMarker.markers) {
+				if (marker.resource.scheme === network.Schemas.walkThrough || marker.resource.scheme === network.Schemas.walkThroughSnippet) {
+					continue;
+				}
+
+				// Exclude pattern
+				if (filterOptions.excludesMatcher.matches(marker.resource)) {
+					continue;
+				}
+
+				// Include pattern
+				if (filterOptions.includesMatcher.matches(marker.resource)) {
+					items.push({ marker });
+					continue;
+				}
+
+				// Severity filter
+				const matchesSeverity = filterOptions.showErrors && MarkerSeverity.Error === marker.marker.severity ||
+					filterOptions.showWarnings && MarkerSeverity.Warning === marker.marker.severity ||
+					filterOptions.showInfos && MarkerSeverity.Info === marker.marker.severity;
+
+				if (!matchesSeverity) {
+					continue;
+				}
+
+				// Text filter
+				if (filterOptions.textFilter.text) {
+					const sourceMatches = marker.marker.source ? FilterOptions._filter(filterOptions.textFilter.text, marker.marker.source) ?? undefined : undefined;
+					const codeMatches = marker.marker.code ? FilterOptions._filter(filterOptions.textFilter.text, typeof marker.marker.code === 'string' ? marker.marker.code : marker.marker.code.value) ?? undefined : undefined;
+					const messageMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.message) ?? undefined;
+					const fileMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, this.labelService.getUriLabel(marker.resource, { relative: true })) ?? undefined;
+					const ownerMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.owner) ?? undefined;
+
+					const matched = sourceMatches || codeMatches || messageMatches || fileMatches || ownerMatches;
+					if ((matched && !filterOptions.textFilter.negate) || (!matched && filterOptions.textFilter.negate)) {
+						items.push({ marker, sourceMatches, codeMatches, messageMatches, fileMatches, ownerMatches });
+					}
+
+					continue;
+				}
+
 				items.push({ marker });
 			}
 		}
@@ -379,55 +421,4 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 
 	updateMarker(marker: Marker): void {
 	}
-
-	// updateTable(markers: Marker[], filterOptions: FilterOptions): void {
-	// 	const items: IMarkerTableItem[] = [];
-
-	// 	for (const marker of markers) {
-	// 		if (marker.resource.scheme === network.Schemas.walkThrough || marker.resource.scheme === network.Schemas.walkThroughSnippet) {
-	// 			continue;
-	// 		}
-
-	// 		// Exclude pattern
-	// 		if (filterOptions.excludesMatcher.matches(marker.resource)) {
-	// 			continue;
-	// 		}
-
-	// 		// Include pattern
-	// 		if (filterOptions.includesMatcher.matches(marker.resource)) {
-	// 			items.push({ marker });
-	// 			continue;
-	// 		}
-
-	// 		// Severity filter
-	// 		const matchesSeverity = filterOptions.showErrors && MarkerSeverity.Error === marker.marker.severity ||
-	// 			filterOptions.showWarnings && MarkerSeverity.Warning === marker.marker.severity ||
-	// 			filterOptions.showInfos && MarkerSeverity.Info === marker.marker.severity;
-
-	// 		if (!matchesSeverity) {
-	// 			continue;
-	// 		}
-
-	// 		// Text filter
-	// 		if (filterOptions.textFilter.text) {
-	// 			const sourceMatches = marker.marker.source ? FilterOptions._filter(filterOptions.textFilter.text, marker.marker.source) ?? undefined : undefined;
-	// 			const codeMatches = marker.marker.code ? FilterOptions._filter(filterOptions.textFilter.text, typeof marker.marker.code === 'string' ? marker.marker.code : marker.marker.code.value) ?? undefined : undefined;
-	// 			const messageMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.message) ?? undefined;
-	// 			const fileMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, this.labelService.getUriLabel(marker.resource, { relative: true })) ?? undefined;
-	// 			const ownerMatches = FilterOptions._messageFilter(filterOptions.textFilter.text, marker.marker.owner) ?? undefined;
-
-	// 			const matched = sourceMatches || codeMatches || messageMatches || fileMatches || ownerMatches;
-	// 			if ((matched && !filterOptions.textFilter.negate) || (!matched && filterOptions.textFilter.negate)) {
-	// 				items.push({ marker, sourceMatches, codeMatches, messageMatches, fileMatches, ownerMatches });
-	// 			}
-
-	// 			continue;
-	// 		}
-
-	// 		items.push({ marker });
-	// 	}
-
-	// 	this._itemCount = items.length;
-	// 	this.table.splice(0, Number.POSITIVE_INFINITY, items.sort((a, b) => MarkerSeverity.compare(a.marker.marker.severity, b.marker.marker.severity)));
-	// }
 }
