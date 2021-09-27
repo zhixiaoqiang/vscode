@@ -250,7 +250,6 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		private readonly markersViewModel: MarkersViewModel,
 		private resourceMarkers: ResourceMarkers[],
 		private filterOptions: FilterOptions,
-		@IContextKeyService readonly contextKeyService: IContextKeyService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ILabelService private readonly labelService: ILabelService,
 	) {
@@ -312,7 +311,8 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 			],
 			{
 				horizontalScrolling: false,
-				multipleSelectionSupport: false
+				multipleSelectionSupport: false,
+				selectionNavigation: true
 			}
 		) as WorkbenchTable<MarkerTableItem>;
 
@@ -333,10 +333,14 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		const onRowPermanentHover = Event.debounce(onRowHoverOrLeave, (_, e) => e, 500);
 
 		onRowPermanentHover(e => {
-			if (e !== -1) {
+			if (e !== -1 && this.table.row(e)) {
 				this.markersViewModel.onMarkerMouseHover(this.table.row(e));
 			}
 		});
+	}
+
+	get contextKeyService(): IContextKeyService {
+		return this.table.contextKeyService;
 	}
 
 	get onContextMenu(): Event<ITableContextMenuEvent<MarkerTableItem>> {
@@ -366,20 +370,21 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		this.reset(resourceMarkers);
 	}
 
-	getFocus(): (Marker | null)[] {
-		return [];
+	getFocus(): (MarkerTableItem | null)[] {
+		return [this.table.row(this.table.getFocus()[0])];
 	}
 
 	getHTMLElement(): HTMLElement {
 		return this.table.getHTMLElement();
 	}
 
-	getRelativeTop(location: Marker | null): number | null {
-		return null;
+	getRelativeTop(marker: MarkerTableItem | null): number | null {
+		return marker ? this.table.getRelativeTop(this.table.indexOf(marker)) : null;
 	}
 
-	getSelection(): any {
-		return this.table.getSelection();
+	getSelection(): (MarkerTableItem | null)[] {
+		const selection = this.table.getSelection();
+		return selection.length > 0 ? [this.table.row(selection[0])] : [];
 	}
 
 	getVisibleItemCount(): number {
@@ -447,13 +452,16 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 		this.table.splice(0, Number.POSITIVE_INFINITY, items.sort((a, b) => MarkerSeverity.compare(a.marker.severity, b.marker.severity)));
 	}
 
-	revealMarkers(activeResource: ResourceMarkers | null, focus: boolean): void { }
+	revealMarkers(activeResource: ResourceMarkers | null, focus: boolean): void {
+		console.log('revealMarkers');
+	}
 
 	setAriaLabel(label: string): void {
 		this.table.domNode.ariaLabel = label;
 	}
 
 	setMarkerSelection(): void {
+		console.log('setMarkerSelection');
 	}
 
 	toggleVisibility(hide: boolean): void {
@@ -469,5 +477,6 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 	}
 
 	updateMarker(marker: Marker): void {
+		console.log('setMarkerSelection');
 	}
 }

@@ -204,15 +204,17 @@ export class MarkersView extends ViewPane implements IMarkersView {
 			}
 		}));
 
-		this.widgetContainer = dom.append(parent, dom.$('.markers-panel-container'));
+		const panelContainer = dom.append(parent, dom.$('.markers-panel-container'));
 
-		this.createArialLabelElement(this.widgetContainer);
+		this.createArialLabelElement(panelContainer);
 
-		this.createFilterActionBar(this.widgetContainer);
+		this.createFilterActionBar(panelContainer);
 		this.filterActionBar!.push(new Action(`workbench.actions.treeView.${this.id}.filter`));
 
+		this.createMessageBox(panelContainer);
+
+		this.widgetContainer = dom.append(panelContainer, dom.$('.widget-container'));
 		this.createWidget(this.widgetContainer);
-		this.createMessageBox(this.widgetContainer);
 
 		this.updateFilter();
 		this.renderContent();
@@ -412,8 +414,8 @@ export class MarkersView extends ViewPane implements IMarkersView {
 	private createWidget(parent: HTMLElement): void {
 		this.widget = this.markersViewModel.viewMode === MarkersViewMode.Table ? this.createTable(parent) : this.createTree(parent);
 
-		const markerFocusContextKey = Constants.MarkerFocusContextKey.bindTo(this.contextKeyService);
-		const relatedInformationFocusContextKey = Constants.RelatedInformationFocusContextKey.bindTo(this.contextKeyService);
+		const markerFocusContextKey = Constants.MarkerFocusContextKey.bindTo(this.widget.contextKeyService);
+		const relatedInformationFocusContextKey = Constants.RelatedInformationFocusContextKey.bindTo(this.widget.contextKeyService);
 		this._register(this.widget.onDidChangeFocus(focus => {
 			markerFocusContextKey.set(focus.elements.some(e => e instanceof Marker));
 			relatedInformationFocusContextKey.set(focus.elements.some(e => e instanceof RelatedInformation));
@@ -473,20 +475,6 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		));
 
 		onDidChangeRenderNodeCount.input = tree.onDidChangeRenderNodeCount;
-
-		// const markerFocusContextKey = Constants.MarkerFocusContextKey.bindTo(tree.contextKeyService);
-		// const relatedInformationFocusContextKey = Constants.RelatedInformationFocusContextKey.bindTo(tree.contextKeyService);
-		// this._register(tree.onDidChangeFocus(focus => {
-		// 	markerFocusContextKey.set(focus.elements.some(e => e instanceof Marker));
-		// 	relatedInformationFocusContextKey.set(focus.elements.some(e => e instanceof RelatedInformation));
-		// }));
-
-		// this._register(Event.debounce(tree.onDidOpen, (last, event) => event, 75, true)(options => {
-		// 	this.openFileAtElement(options.element, !!options.editorOptions.preserveFocus, options.sideBySide, !!options.editorOptions.pinned);
-		// }));
-
-		// this._register(tree.onContextMenu(this.onContextMenu, this));
-		// this._register(tree.onDidChangeSelection(() => this.onSelected()));
 
 		return tree;
 	}
@@ -802,6 +790,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 	}
 
 	public getFocusElement(): MarkerElement | undefined {
+		console.log(this.widget.getFocus());
 		return this.widget.getFocus()[0] ?? undefined;
 	}
 
@@ -984,6 +973,7 @@ class MarkersTree extends WorkbenchObjectTree<MarkerElement, FilterData> impleme
 	}
 
 	setMarkerSelection(): void {
+		console.log('setMarkerSelection');
 		if (this.isVisible() && this.getSelection().length === 0) {
 			const firstVisibleElement = this.firstVisibleElement;
 			const marker = firstVisibleElement ?
