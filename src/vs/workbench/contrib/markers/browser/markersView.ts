@@ -23,9 +23,9 @@ import { IStorageService, StorageScope, StorageTarget } from 'vs/platform/storag
 import { localize } from 'vs/nls';
 import { IContextKey, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { Iterable } from 'vs/base/common/iterator';
-import { ITreeElement, ITreeNode, ITreeContextMenuEvent, ITreeRenderer } from 'vs/base/browser/ui/tree/tree';
+import { ITreeElement, ITreeNode, ITreeContextMenuEvent, ITreeRenderer, ITreeEvent } from 'vs/base/browser/ui/tree/tree';
 import { Relay, Event, Emitter } from 'vs/base/common/event';
-import { WorkbenchObjectTree, IListService, IWorkbenchObjectTreeOptions } from 'vs/platform/list/browser/listService';
+import { WorkbenchObjectTree, IListService, IWorkbenchObjectTreeOptions, IOpenEvent } from 'vs/platform/list/browser/listService';
 import { FilterOptions } from 'vs/workbench/contrib/markers/browser/markersFilterOptions';
 import { IExpression } from 'vs/base/common/glob';
 import { deepClone } from 'vs/base/common/objects';
@@ -56,7 +56,8 @@ import { ResourceMap } from 'vs/base/common/map';
 import { EditorResourceAccessor, SideBySideEditor } from 'vs/workbench/common/editor';
 import { IMarkersView } from 'vs/workbench/contrib/markers/browser/markers';
 import { createAndFillInContextMenuActions } from 'vs/platform/actions/browser/menuEntryActionViewItem';
-import { MarkersTable } from 'vs/workbench/contrib/markers/browser/markersTable';
+import { MarkersTable, MarkerTableItem } from 'vs/workbench/contrib/markers/browser/markersTable';
+import { ITableContextMenuEvent, ITableEvent } from 'vs/base/browser/ui/table/table';
 
 function createResourceMarkersIterator(resourceMarkers: ResourceMarkers): Iterable<ITreeElement<MarkerElement>> {
 	return Iterable.map(resourceMarkers.markers, m => {
@@ -74,6 +75,11 @@ export const enum MarkersViewMode {
 
 export interface IProblemsWidget {
 	get contextKeyService(): IContextKeyService;
+	get onContextMenu(): Event<ITreeContextMenuEvent<MarkerElement | null>> | Event<ITableContextMenuEvent<MarkerTableItem>>;
+	get onDidChangeSelection(): Event<ITreeEvent<MarkerElement | null>> | Event<ITableEvent<MarkerTableItem>>;
+	get onDidOpen(): Event<IOpenEvent<MarkerElement | MarkerTableItem | undefined>>;
+	get onDidChangeFocus(): Event<ITreeEvent<MarkerElement | null>> | Event<ITableEvent<MarkerTableItem>>;
+
 	collapseMarkers(): void;
 	dispose(): void;
 	domFocus(): void;
@@ -84,7 +90,7 @@ export interface IProblemsWidget {
 	getSelection(): (MarkerElement | null)[];
 	getVisibleItemCount(): number;
 	layout(height: number, width: number): void;
-	reset(resourceMarkers: ResourceMarkers[], filterOptions: FilterOptions): void;
+	reset(resourceMarkers: ResourceMarkers[]): void;
 	revealMarkers(activeResource: ResourceMarkers | null, focus: boolean, lastSelectedRelativeTop: number): void;
 	setAriaLabel(label: string): void;
 	setMarkerSelection(): void;
@@ -175,6 +181,13 @@ export class MarkersView extends ViewPane implements IMarkersView {
 			activeFile: !!this.panelState['activeFile'],
 			layout: new dom.Dimension(0, 0)
 		}));
+
+		// Update filter, whenever the "files.exclude" setting is changed
+		this._register(this.configurationService.onDidChangeConfiguration(e => {
+			if (this.filters.excludedFiles && e.affectsConfiguration('files.exclude')) {
+				this.updateFilter();
+			}
+		}));
 	}
 
 	public getTitle(): string {
@@ -185,17 +198,23 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		super.renderBody(parent);
 
 		parent.classList.add('markers-panel');
+		this._register(dom.addDisposableListener(parent, 'keydown', e => {
+			if (this.keybindingService.mightProducePrintableCharacter(new StandardKeyboardEvent(e))) {
+				this.focusFilter();
+			}
+		}));
 
 		this.widgetContainer = dom.append(parent, dom.$('.markers-panel-container'));
 
-		this.createFilterActionBar(this.widgetContainer);
 		this.createArialLabelElement(this.widgetContainer);
-		this.createMessageBox(this.widgetContainer);
+
+		this.createFilterActionBar(this.widgetContainer);
+		this.filterActionBar!.push(new Action(`workbench.actions.treeView.${this.id}.filter`));
+
 		this.createWidget(this.widgetContainer);
+		this.createMessageBox(this.widgetContainer);
 
 		this.updateFilter();
-
-		this.filterActionBar!.push(new Action(`workbench.actions.treeView.${this.id}.filter`));
 		this.renderContent();
 	}
 
@@ -329,7 +348,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 	}
 
 	private resetWidget(): void {
-		this.widget.reset(this.getResourceMarkers(), this.filter.options);
+		this.widget.reset(this.getResourceMarkers());
 	}
 
 	private updateFilter(): void {
@@ -392,15 +411,25 @@ export class MarkersView extends ViewPane implements IMarkersView {
 
 	private createWidget(parent: HTMLElement): void {
 		this.widget = this.markersViewModel.viewMode === MarkersViewMode.Table ? this.createTable(parent) : this.createTree(parent);
+
+		const markerFocusContextKey = Constants.MarkerFocusContextKey.bindTo(this.contextKeyService);
+		const relatedInformationFocusContextKey = Constants.RelatedInformationFocusContextKey.bindTo(this.contextKeyService);
+		this._register(this.widget.onDidChangeFocus(focus => {
+			markerFocusContextKey.set(focus.elements.some(e => e instanceof Marker));
+			relatedInformationFocusContextKey.set(focus.elements.some(e => e instanceof RelatedInformation));
+		}));
+
+		this._register(Event.debounce(this.widget.onDidOpen, (last, event) => event, 75, true)(options => {
+			this.openFileAtElement(options.element, !!options.editorOptions.preserveFocus, options.sideBySide, !!options.editorOptions.pinned);
+		}));
+
+		this._register(this.widget.onContextMenu(this.onContextMenu, this));
+		this._register(this.widget.onDidChangeSelection(this.onSelected, this));
 	}
 
 	private createTable(parent: HTMLElement): IProblemsWidget {
 		const tableContainer = dom.append(parent, dom.$('.markers-table-container'));
-		const table = this._register(this.instantiationService.createInstance(MarkersTable, tableContainer, this.markersViewModel));
-
-		this._register(Event.debounce(table.onDidOpen, (last, event) => event, 75, true)(options => {
-			this.openFileAtElement(options.element, !!options.editorOptions.preserveFocus, options.sideBySide, !!options.editorOptions.pinned);
-		}));
+		const table = this._register(this.instantiationService.createInstance(MarkersTable, tableContainer, this.markersViewModel, this.getResourceMarkers(), this.filter.options));
 
 		return table;
 	}
@@ -427,6 +456,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		const tree = this._register(this.instantiationService.createInstance(MarkersTree,
 			'MarkersView',
 			dom.append(parent, dom.$('.tree-container.show-file-icons')),
+			this.markersViewModel,
 			virtualDelegate,
 			renderers,
 			{
@@ -444,57 +474,20 @@ export class MarkersView extends ViewPane implements IMarkersView {
 
 		onDidChangeRenderNodeCount.input = tree.onDidChangeRenderNodeCount;
 
-		const markerFocusContextKey = Constants.MarkerFocusContextKey.bindTo(tree.contextKeyService);
-		const relatedInformationFocusContextKey = Constants.RelatedInformationFocusContextKey.bindTo(tree.contextKeyService);
-		this._register(tree.onDidChangeFocus(focus => {
-			markerFocusContextKey.set(focus.elements.some(e => e instanceof Marker));
-			relatedInformationFocusContextKey.set(focus.elements.some(e => e instanceof RelatedInformation));
-		}));
+		// const markerFocusContextKey = Constants.MarkerFocusContextKey.bindTo(tree.contextKeyService);
+		// const relatedInformationFocusContextKey = Constants.RelatedInformationFocusContextKey.bindTo(tree.contextKeyService);
+		// this._register(tree.onDidChangeFocus(focus => {
+		// 	markerFocusContextKey.set(focus.elements.some(e => e instanceof Marker));
+		// 	relatedInformationFocusContextKey.set(focus.elements.some(e => e instanceof RelatedInformation));
+		// }));
 
-		this._register(Event.debounce(tree.onDidOpen, (last, event) => event, 75, true)(options => {
-			this.openFileAtElement(options.element, !!options.editorOptions.preserveFocus, options.sideBySide, !!options.editorOptions.pinned);
-		}));
-		this._register(tree.onDidChangeCollapseState(({ node }) => {
-			const { element } = node;
-			if (element instanceof RelatedInformation && !node.collapsed) {
-				/* __GDPR__
-				"problems.expandRelatedInformation" : {
-					"source": { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
-					"code" : { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" }
-				}
-				*/
-				this.telemetryService.publicLog('problems.expandRelatedInformation', this.getTelemetryData(element.marker));
-			}
-		}));
+		// this._register(Event.debounce(tree.onDidOpen, (last, event) => event, 75, true)(options => {
+		// 	this.openFileAtElement(options.element, !!options.editorOptions.preserveFocus, options.sideBySide, !!options.editorOptions.pinned);
+		// }));
 
-		this._register(tree.onContextMenu(this.onContextMenu, this));
+		// this._register(tree.onContextMenu(this.onContextMenu, this));
+		// this._register(tree.onDidChangeSelection(() => this.onSelected()));
 
-		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (this.filters.excludedFiles && e.affectsConfiguration('files.exclude')) {
-				this.updateFilter();
-			}
-		}));
-
-		// move focus to input, whenever a key is pressed in the panel container
-		this._register(dom.addDisposableListener(parent, 'keydown', e => {
-			if (this.keybindingService.mightProducePrintableCharacter(new StandardKeyboardEvent(e))) {
-				this.focusFilter();
-			}
-		}));
-
-		this._register(Event.any<any>(tree.onDidChangeSelection, tree.onDidChangeFocus)(() => {
-			const elements = [...tree!.getSelection(), ...tree!.getFocus()];
-			for (const element of elements) {
-				if (element instanceof Marker) {
-					const viewModel = this.markersViewModel.getViewModel(element);
-					if (viewModel) {
-						viewModel.showLightBulb();
-					}
-				}
-			}
-		}));
-
-		this._register(tree.onDidChangeSelection(() => this.onSelected()));
 		return tree;
 	}
 
@@ -761,7 +754,7 @@ export class MarkersView extends ViewPane implements IMarkersView {
 		this.rangeHighlightDecorations.highlightRange(selection);
 	}
 
-	private onContextMenu(e: ITreeContextMenuEvent<MarkerElement | null>): void {
+	private onContextMenu(e: ITreeContextMenuEvent<MarkerElement | null> | ITableContextMenuEvent<MarkerTableItem>): void {
 		const element = e.element;
 		if (!element) {
 			return;
@@ -882,7 +875,8 @@ class MarkersTree extends WorkbenchObjectTree<MarkerElement, FilterData> impleme
 
 	constructor(
 		user: string,
-		readonly container: HTMLElement,
+		private readonly container: HTMLElement,
+		private readonly markersViewModel: MarkersViewModel,
 		delegate: IListVirtualDelegate<MarkerElement>,
 		renderers: ITreeRenderer<MarkerElement, FilterData, any>[],
 		options: IWorkbenchObjectTreeOptions<MarkerElement, FilterData>,
@@ -891,14 +885,35 @@ class MarkersTree extends WorkbenchObjectTree<MarkerElement, FilterData> impleme
 		@IThemeService themeService: IThemeService,
 		@IConfigurationService configurationService: IConfigurationService,
 		@IKeybindingService keybindingService: IKeybindingService,
-		@IAccessibilityService accessibilityService: IAccessibilityService
+		@IAccessibilityService accessibilityService: IAccessibilityService,
+		@ITelemetryService telemetryService: ITelemetryService
 	) {
 		super(user, container, delegate, renderers, options, contextKeyService, listService, themeService, configurationService, keybindingService, accessibilityService);
-	}
 
-	override layout(height: number, width: number): void {
-		this.container.style.height = `${height}px`;
-		super.layout(height, width);
+		Event.any<any>(this.onDidChangeSelection, this.onDidChangeFocus)(() => {
+			const elements = [...this.getSelection(), ...this.getFocus()];
+			for (const element of elements) {
+				if (element instanceof Marker) {
+					const viewModel = this.markersViewModel.getViewModel(element);
+					if (viewModel) {
+						viewModel.showLightBulb();
+					}
+				}
+			}
+		});
+
+		this.onDidChangeCollapseState(({ node }) => {
+			const { element } = node;
+			if (element instanceof RelatedInformation && !node.collapsed) {
+				/* __GDPR__
+				"problems.expandRelatedInformation" : {
+					"source": { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" },
+					"code" : { "classification": "PublicNonPersonalData", "purpose": "FeatureInsight" }
+				}
+				*/
+				telemetryService.publicLog('problems.expandRelatedInformation', { source: element.marker.source, code: element.marker.code });
+			}
+		});
 	}
 
 	collapseMarkers(): void {
@@ -1004,6 +1019,15 @@ class MarkersTree extends WorkbenchObjectTree<MarkerElement, FilterData> impleme
 		}
 
 		return false;
+	}
+
+	override dispose(): void {
+		super.dispose();
+	}
+
+	override layout(height: number, width: number): void {
+		this.container.style.height = `${height}px`;
+		super.layout(height, width);
 	}
 }
 
