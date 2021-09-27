@@ -24,6 +24,8 @@ import { CharCode } from 'vs/base/common/charCode';
 import { StorageScope, IStorageService, StorageTarget } from 'vs/platform/storage/common/storage';
 import { ThemeConfiguration } from 'vs/workbench/services/themes/common/themeConfiguration';
 import { ColorScheme } from 'vs/platform/theme/common/theme';
+import { IProductService } from 'vs/platform/product/common/productService';
+import { format2 } from 'vs/base/common/strings';
 
 let colorRegistry = Registry.as<IColorRegistry>(ColorRegistryExtensions.ColorContribution);
 
@@ -668,6 +670,34 @@ export class ColorThemeData implements IWorkbenchColorTheme {
 		themeData.extensionData = extensionData;
 		themeData.isLoaded = false;
 		return themeData;
+	}
+
+	static async fromMarketplace(productService: IProductService, extensionResourceLoaderService: IExtensionResourceLoaderService, extensionData: { publisher: string, name: string, version: string }): Promise<ColorThemeData[]> {
+
+		const resourceUrlTemplate = productService.extensionsGallery?.resourceUrlTemplate;
+		if (!resourceUrlTemplate) {
+			return [];
+		}
+		try {
+			const extensionLocation = URI.parse(format2(resourceUrlTemplate, { publisher: extensionData.publisher, name: extensionData.name, version: extensionData.version, path: 'extension' }));
+
+			const manifest = await extensionResourceLoaderService.readExtensionResource(resources.joinPath(extensionLocation, 'package.json'));
+
+			const manifestObj = JSON.parse(manifest);
+			const themes = manifestObj.contributes?.themes;
+			if (Array.isArray(themes)) {
+				const res = [];
+				for (const theme of themes) {
+					const data: ExtensionData = { extensionPublisher: extensionData.publisher, extensionId: `${extensionData.publisher}.${extensionData.name}`, extensionName: extensionData.name, extensionIsBuiltin: false };
+					res.push(ColorThemeData.fromExtensionTheme(theme, extensionLocation, data));
+				}
+				return res;
+			}
+		} catch (e) {
+			console.log(e);
+		}
+
+		return [];
 	}
 }
 

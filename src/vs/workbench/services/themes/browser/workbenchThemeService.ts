@@ -39,6 +39,7 @@ import { IHostColorSchemeService } from 'vs/workbench/services/themes/common/hos
 import { RunOnceScheduler, Sequencer } from 'vs/base/common/async';
 import { IUserDataInitializationService } from 'vs/workbench/services/userData/browser/userDataInit';
 import { getIconsStyleSheet } from 'vs/platform/theme/browser/iconsStyleSheet';
+import { IProductService } from 'vs/platform/product/common/productService';
 
 // implementation
 
@@ -113,6 +114,7 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 		@IWorkbenchLayoutService readonly layoutService: IWorkbenchLayoutService,
 		@ILogService private readonly logService: ILogService,
 		@IHostColorSchemeService private readonly hostColorService: IHostColorSchemeService,
+		@IProductService productService: IProductService,
 		@IUserDataInitializationService readonly userDataInitializationService: IUserDataInitializationService
 	) {
 		this.container = layoutService.container;
@@ -135,6 +137,13 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 		this.onProductIconThemeChange = new Emitter<IWorkbenchProductIconTheme>();
 		this.currentProductIconTheme = ProductIconThemeData.createUnloadedTheme('');
 		this.productIconThemeSequencer = new Sequencer();
+
+		console.log('setTimeout');
+		setTimeout(async () => {
+			console.log('fromMarketplace');
+			const themes = await ColorThemeData.fromMarketplace(productService, extensionResourceLoaderService, { publisher: 'azemoh', name: 'one-monokai', version: '0.5.0' });
+			this.colorThemeRegistry.add(themes);
+		}, 400);
 
 		// In order to avoid paint flashing for tokens, because
 		// themes are loaded asynchronously, we need to initialize

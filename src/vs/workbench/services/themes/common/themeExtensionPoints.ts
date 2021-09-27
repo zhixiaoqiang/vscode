@@ -132,6 +132,13 @@ export class ThemeRegistry<T extends IThemeData> {
 		this.initialize();
 	}
 
+	public add(themes: T[]) {
+		if (themes.length) {
+			this.extensionThemes.push(...themes);
+			this.onDidChangeEmitter.fire({ themes: this.extensionThemes, added: themes, removed: [] });
+		}
+	}
+
 	private initialize() {
 		this.themesExtPoint.setHandler((extensions, delta) => {
 			const previousIds: { [key: string]: T } = {};
