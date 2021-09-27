@@ -216,9 +216,13 @@
 	display: none;
 }
 
-
 .markers-panel .markers-table-container {
+	margin-top: 8px;
 	padding-left: 20px;
+}
+
+.markers-panel .markers-table-container .monaco-table-th {
+	font-weight: 600;
 }
 
 .markers-panel .markers-table-container .monaco-table-th,
@@ -266,35 +270,34 @@
 	opacity: 0.7;
 }
 
-.markers-panel .monaco-table-td .message.code-link .code-label {
+.markers-panel .monaco-table-td .code.code-link .code-label {
 	display: none;
 }
 
-.markers-panel .monaco-table-td .message .monaco-link {
+.markers-panel .monaco-table-td .code .monaco-link {
 	display: none;
 }
 
-.markers-panel .monaco-table-td .message.code-link .monaco-link {
+.markers-panel .monaco-table-td .code.code-link .monaco-link {
 	display: inline;
 }
 
-.markers-panel .monaco-table-td .message .source-label {
-	margin-left: 6px;
+.markers-panel .monaco-table-td .code .source-label {
 	opacity: 0.7;
 }
 
-.markers-panel .monaco-table-td .message .monaco-link::before,
-.markers-panel .monaco-table-td .message .code-label::before {
+.markers-panel .monaco-table-td .code .monaco-link::before,
+.markers-panel .monaco-table-td .code .code-label::before {
 	content: '(';
 }
 
-.markers-panel .monaco-table-td .message .monaco-link::after,
-.markers-panel .monaco-table-td .message .code-label::after {
+.markers-panel .monaco-table-td .code .monaco-link::after,
+.markers-panel .monaco-table-td .code .code-label::after {
 	content: ')';
 }
 
 
-.markers-panel .monaco-table-td .message .code-label {
+.markers-panel .monaco-table-td .code .code-label {
 	opacity: 0.7;
 }
 
