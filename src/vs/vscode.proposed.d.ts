@@ -44,12 +44,22 @@ declare module 'vscode' {
 		isTrusted?: boolean;
 	}
 
+	export interface TunnelPrivacy {
+		themeIcon: string;
+		id: string;
+		label: string;
+	}
+
 	export interface TunnelOptions {
 		remoteAddress: { port: number, host: string; };
 		// The desired local port. If this port can't be used, then another will be chosen.
 		localAddressPort?: number;
 		label?: string;
+		/**
+		 * @deprecated Use privacy instead
+		 */
 		public?: boolean;
+		privacy?: string;
 		protocol?: string;
 	}
 
@@ -57,7 +67,11 @@ declare module 'vscode' {
 		remoteAddress: { port: number, host: string; };
 		//The complete local address(ex. localhost:1234)
 		localAddress: { port: number, host: string; } | string;
+		/**
+		 * @deprecated Use privacy instead
+		 */
 		public?: boolean;
+		privacy?: string;
 		// If protocol is not provided it is assumed to be http, regardless of the localAddress.
 		protocol?: string;
 	}
@@ -144,7 +158,11 @@ declare module 'vscode' {
 		 */
 		tunnelFeatures?: {
 			elevation: boolean;
+			/**
+			 * @deprecated Use privacy instead
+			 */
 			public: boolean;
+			privacyOptions: TunnelPrivacy[];
 		};
 
 		candidatePortSource?: CandidatePortSource;
@@ -2267,6 +2285,21 @@ declare module 'vscode' {
 		 * Dictated by being the selected tab in the active group
 		 */
 		readonly isActive: boolean;
+
+		/**
+		 * Moves a tab to the given index within the column.
+		 * If the index is out of range, the tab will be moved to the end of the column.
+		 * If the column is out of range, a new one will be created after the last existing column.
+		 * @param index The index to move the tab to
+		 * @param viewColumn The column to move the tab into
+		 */
+		move(index: number, viewColumn: ViewColumn): Thenable<void>;
+
+		/**
+		 * Closes the tab. This makes the tab object invalid and the tab
+		 * should no longer be used for further actions.
+		 */
+		close(): Thenable<void>;
 	}
 
 	export namespace window {
@@ -2787,4 +2820,8 @@ declare module 'vscode' {
 	}
 
 	//#endregion
+
+	export interface SourceControl {
+		actionButton?: Command;
+	}
 }

@@ -19,7 +19,7 @@ import { EditorOption } from 'vs/editor/common/config/editorOptions';
 import { Position } from 'vs/editor/common/core/position';
 import { Range } from 'vs/editor/common/core/range';
 import { IContentDecorationRenderOptions, IDecorationRenderOptions, IEditorContribution } from 'vs/editor/common/editorCommon';
-import { IModelDeltaDecoration, ITextModel, TrackedRangeStickiness } from 'vs/editor/common/model';
+import { IModelDeltaDecoration, ITextModel, IWordAtPosition, TrackedRangeStickiness } from 'vs/editor/common/model';
 import { InlayHint, InlayHintKind, InlayHintsProviderRegistry } from 'vs/editor/common/modes';
 import { LanguageFeatureRequestDelays } from 'vs/editor/common/modes/languageFeatureRegistry';
 import { ITextModelService } from 'vs/editor/common/services/resolverService';
@@ -131,7 +131,9 @@ export class InlayHintsController implements IEditorContribution {
 			const ranges = this._getHintsRanges();
 			const result = await getInlayHints(model, ranges, cts.token);
 			scheduler.delay = this._getInlayHintsDelays.update(model, Date.now() - t1);
-
+			if (cts.token.isCancellationRequested) {
+				return;
+			}
 			this._updateHintsDecorators(ranges, result);
 			this._cache.set(model, Array.from(this._decorations.values()).map(obj => obj.hint));
 
@@ -175,8 +177,6 @@ export class InlayHintsController implements IEditorContribution {
 		const { fontSize, fontFamily } = this._getLayoutInfo();
 		const model = this._editor.getModel()!;
 
-
-
 		const newDecorationsTypeIds: string[] = [];
 		const newDecorationsData: IModelDeltaDecoration[] = [];
 
@@ -216,14 +216,14 @@ export class InlayHintsController implements IEditorContribution {
 			let usesWordRange = false;
 			if (word) {
 				if (word.endColumn === position.column) {
-					range = new Range(position.lineNumber, position.column, position.lineNumber, word.endColumn);
 					// change decoration to after
 					renderOptions.afterInjectedText = renderOptions.beforeInjectedText;
 					renderOptions.beforeInjectedText = undefined;
 					usesWordRange = true;
+					range = wordToRange(word, position.lineNumber);
 				} else if (word.startColumn === position.column) {
-					range = new Range(position.lineNumber, word.startColumn, position.lineNumber, position.column);
 					usesWordRange = true;
+					range = wordToRange(word, position.lineNumber);
 				}
 			}
 
@@ -285,6 +285,15 @@ export class InlayHintsController implements IEditorContribution {
 		}
 		this._decorations.clear();
 	}
+}
+
+function wordToRange(word: IWordAtPosition, lineNumber: number): Range {
+	return new Range(
+		lineNumber,
+		word.startColumn,
+		lineNumber,
+		word.endColumn
+	);
 }
 
 function fixSpace(str: string): string {

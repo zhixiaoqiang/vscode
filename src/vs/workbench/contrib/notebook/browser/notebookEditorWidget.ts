@@ -62,13 +62,14 @@ import { Webview } from 'vs/workbench/contrib/webview/browser/webview';
 import { mark } from 'vs/workbench/contrib/notebook/common/notebookPerformance';
 import { readFontInfo } from 'vs/editor/browser/config/configuration';
 import { INotebookKernelService } from 'vs/workbench/contrib/notebook/common/notebookKernelService';
-import { NotebookOptions } from 'vs/workbench/contrib/notebook/common/notebookOptions';
+import { NotebookOptions, OutputInnerContainerTopPadding } from 'vs/workbench/contrib/notebook/common/notebookOptions';
 import { ViewContext } from 'vs/workbench/contrib/notebook/browser/viewModel/viewContext';
 import { INotebookRendererMessagingService } from 'vs/workbench/contrib/notebook/common/notebookRendererMessagingService';
 import { IAckOutputHeight, IMarkupCellInitialization } from 'vs/workbench/contrib/notebook/browser/view/renderers/webviewMessages';
 import { SuggestController } from 'vs/editor/contrib/suggest/suggestController';
 import { registerZIndex, ZIndex } from 'vs/platform/layout/browser/zIndexRegistry';
 import { INotebookCellList } from 'vs/workbench/contrib/notebook/browser/view/notebookRenderingCommon';
+import { notebookDebug } from 'vs/workbench/contrib/notebook/browser/notebookLogger';
 
 const $ = DOM.$;
 
@@ -456,29 +457,16 @@ export class NotebookEditorWidget extends Disposable implements INotebookEditorD
 		}
 
 		this._updateForNotebookConfiguration();
-
-		if (this._debugFlag) {
-			this._domFrameLog();
-		}
 	}
 
 	private _debugFlag: boolean = false;
-	private _frameId = 0;
-	private _domFrameLog() {
-		DOM.scheduleAtNextAnimationFrame(() => {
-			this._frameId++;
-
-			this._domFrameLog();
-		}, 1000000);
-	}
 
 	private _debug(...args: any[]) {
 		if (!this._debugFlag) {
 			return;
 		}
 
-		const date = new Date();
-		console.log(`${date.getSeconds()}:${date.getMilliseconds().toString().padStart(3, '0')}`, `frame #${this._frameId}: `, ...args);
+		notebookDebug(...args);
 	}
 
 	/**
@@ -624,11 +612,16 @@ export class NotebookEditorWidget extends Disposable implements INotebookEditorD
 		const { bottomToolbarGap, bottomToolbarHeight } = this._notebookOptions.computeBottomToolbarDimensions(this.viewModel?.viewType);
 
 		const styleSheets: string[] = [];
+		if (!this._fontInfo) {
+			this._generateFontInfo();
+		}
+
 		const fontFamily = this._fontInfo?.fontFamily ?? `"SF Mono", Monaco, Menlo, Consolas, "Ubuntu Mono", "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace`;
 
 		styleSheets.push(`
 		:root {
 			--notebook-cell-output-font-size: ${fontSize}px;
+			--notebook-cell-output-font-family: ${fontFamily};
 			--notebook-cell-input-preview-font-size: ${fontSize}px;
 			--notebook-cell-input-preview-font-family: ${fontFamily};
 		}
@@ -774,10 +767,10 @@ export class NotebookEditorWidget extends Disposable implements INotebookEditorD
 
 		// top insert toolbar
 		const topInsertToolbarHeight = this._notebookOptions.computeTopInserToolbarHeight(this.viewModel?.viewType);
-		styleSheets.push(`.notebookOverlay .cell-list-top-cell-toolbar-container { top: -${topInsertToolbarHeight}px }`);
+		styleSheets.push(`.notebookOverlay .cell-list-top-cell-toolbar-container { top: -${topInsertToolbarHeight - 3}px }`);
 		styleSheets.push(`.notebookOverlay > .cell-list-container > .monaco-list > .monaco-scrollable-element,
 		.notebookOverlay > .cell-list-container > .notebook-gutter > .monaco-list > .monaco-scrollable-element {
-			padding-top: ${topInsertToolbarHeight}px;
+			padding-top: ${topInsertToolbarHeight}px !important;
 			box-sizing: border-box;
 		}`);
 
@@ -838,6 +831,16 @@ export class NotebookEditorWidget extends Disposable implements INotebookEditorD
 		.monaco-workbench .notebookOverlay.cell-title-toolbar-hidden > .cell-list-container > .monaco-list > .monaco-scrollable-element > .monaco-list-rows > .monaco-list-row .cell-title-toolbar {
 			display: none;
 		}`);
+
+		// cell output innert container
+		styleSheets.push(`
+		.monaco-workbench .notebookOverlay .output > div.foreground.output-inner-container {
+			padding: ${OutputInnerContainerTopPadding}px 8px;
+		}
+		.monaco-workbench .notebookOverlay > .cell-list-container > .monaco-list > .monaco-scrollable-element > .monaco-list-rows > .monaco-list-row .output-collapse-container {
+			padding: ${OutputInnerContainerTopPadding}px 8px;
+		}
+		`);
 
 		this._styleElement.textContent = styleSheets.join('\n');
 	}
@@ -1320,7 +1323,7 @@ export class NotebookEditorWidget extends Disposable implements INotebookEditorD
 
 		this._localStore.add(this._list.onWillScroll(e => {
 			if (this._webview?.isResolved()) {
-				this._webviewTransparentCover!.style.top = `${e.scrollTop}px`;
+				this._webviewTransparentCover!.style.transform = `translateY(${e.scrollTop})`;
 			}
 		}));
 
