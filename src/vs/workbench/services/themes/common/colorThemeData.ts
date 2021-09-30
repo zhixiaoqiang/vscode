@@ -6,7 +6,7 @@
 import { basename } from 'vs/base/common/path';
 import * as Json from 'vs/base/common/json';
 import { Color } from 'vs/base/common/color';
-import { ExtensionData, ITokenColorCustomizations, ITextMateThemingRule, IWorkbenchColorTheme, IColorMap, IThemeExtensionPoint, VS_LIGHT_THEME, VS_HC_THEME, IColorCustomizations, ISemanticTokenRules, ISemanticTokenColorizationSetting, ISemanticTokenColorCustomizations, IThemeScopableCustomizations, IThemeScopedCustomizations, THEME_SCOPE_CLOSE_PAREN, THEME_SCOPE_OPEN_PAREN, themeScopeRegex, THEME_SCOPE_WILDCARD } from 'vs/workbench/services/themes/common/workbenchThemeService';
+import { ExtensionData, ITokenColorCustomizations, ITextMateThemingRule, IWorkbenchColorTheme, IColorMap, IThemeExtensionPoint, VS_LIGHT_THEME, VS_HC_THEME, IColorCustomizations, ISemanticTokenRules, ISemanticTokenColorizationSetting, ISemanticTokenColorCustomizations, IThemeScopableCustomizations, IThemeScopedCustomizations, THEME_SCOPE_CLOSE_PAREN, THEME_SCOPE_OPEN_PAREN, themeScopeRegex, THEME_SCOPE_WILDCARD, IThemeFileService } from 'vs/workbench/services/themes/common/workbenchThemeService';
 import { convertSettings } from 'vs/workbench/services/themes/common/themeCompatibility';
 import * as nls from 'vs/nls';
 import * as types from 'vs/base/common/types';
@@ -507,15 +507,15 @@ export class ColorThemeData implements IWorkbenchColorTheme {
 		}
 	}
 
-	public ensureLoaded(extensionResourceLoaderService: IExtensionResourceLoaderService): Promise<void> {
-		return !this.isLoaded ? this.load(extensionResourceLoaderService) : Promise.resolve(undefined);
+	public ensureLoaded(fileService: IThemeFileService): Promise<void> {
+		return !this.isLoaded ? this.load(fileService) : Promise.resolve(undefined);
 	}
 
-	public reload(extensionResourceLoaderService: IExtensionResourceLoaderService): Promise<void> {
-		return this.load(extensionResourceLoaderService);
+	public reload(fileService: IThemeFileService): Promise<void> {
+		return this.load(fileService);
 	}
 
-	private load(extensionResourceLoaderService: IExtensionResourceLoaderService): Promise<void> {
+	private load(fileService: IThemeFileService): Promise<void> {
 		if (!this.location) {
 			return Promise.resolve(undefined);
 		}
@@ -528,7 +528,7 @@ export class ColorThemeData implements IWorkbenchColorTheme {
 			semanticTokenRules: [],
 			semanticHighlighting: false
 		};
-		return _loadColorTheme(extensionResourceLoaderService, this.location, result).then(_ => {
+		return _loadColorTheme(fileService, this.location, result).then(_ => {
 			this.isLoaded = true;
 			this.semanticTokenRules = result.semanticTokenRules;
 			this.colorMap = result.colors;
@@ -672,7 +672,7 @@ export class ColorThemeData implements IWorkbenchColorTheme {
 		return themeData;
 	}
 
-	static async fromMarketplace(productService: IProductService, extensionResourceLoaderService: IExtensionResourceLoaderService, extensionData: { publisher: string, name: string, version: string }): Promise<ColorThemeData[]> {
+	static async fromMarketplace(productService: IProductService, fileService: IExtensionResourceLoaderService, extensionData: { publisher: string, name: string, version: string }): Promise<ColorThemeData[]> {
 
 		const resourceUrlTemplate = productService.extensionsGallery?.resourceUrlTemplate;
 		if (!resourceUrlTemplate) {
@@ -681,7 +681,7 @@ export class ColorThemeData implements IWorkbenchColorTheme {
 		try {
 			const extensionLocation = URI.parse(format2(resourceUrlTemplate, { publisher: extensionData.publisher, name: extensionData.name, version: extensionData.version, path: 'extension' }));
 
-			const manifest = await extensionResourceLoaderService.readExtensionResource(resources.joinPath(extensionLocation, 'package.json'));
+			const manifest = await fileService.readExtensionResource(resources.joinPath(extensionLocation, 'package.json'));
 
 			const manifestObj = JSON.parse(manifest);
 			const themes = manifestObj.contributes?.themes;
@@ -715,9 +715,9 @@ function toCSSSelector(extensionId: string, path: string) {
 	return str;
 }
 
-async function _loadColorTheme(extensionResourceLoaderService: IExtensionResourceLoaderService, themeLocation: URI, result: { textMateRules: ITextMateThemingRule[], colors: IColorMap, semanticTokenRules: SemanticTokenRule[], semanticHighlighting: boolean }): Promise<any> {
+async function _loadColorTheme(fileService: IThemeFileService, themeLocation: URI, result: { textMateRules: ITextMateThemingRule[], colors: IColorMap, semanticTokenRules: SemanticTokenRule[], semanticHighlighting: boolean }): Promise<any> {
 	if (resources.extname(themeLocation) === '.json') {
-		const content = await extensionResourceLoaderService.readExtensionResource(themeLocation);
+		const content = await fileService.readFile(themeLocation);
 		let errors: Json.ParseError[] = [];
 		let contentValue = Json.parse(content, errors);
 		if (errors.length > 0) {
@@ -726,7 +726,7 @@ async function _loadColorTheme(extensionResourceLoaderService: IExtensionResourc
 			return Promise.reject(new Error(nls.localize('error.invalidformat', "Invalid format for JSON theme file: Object expected.")));
 		}
 		if (contentValue.include) {
-			await _loadColorTheme(extensionResourceLoaderService, resources.joinPath(resources.dirname(themeLocation), contentValue.include), result);
+			await _loadColorTheme(fileService, resources.joinPath(resources.dirname(themeLocation), contentValue.include), result);
 		}
 		if (Array.isArray(contentValue.settings)) {
 			convertSettings(contentValue.settings, result);
@@ -751,7 +751,7 @@ async function _loadColorTheme(extensionResourceLoaderService: IExtensionResourc
 			if (Array.isArray(tokenColors)) {
 				result.textMateRules.push(...tokenColors);
 			} else if (typeof tokenColors === 'string') {
-				await _loadSyntaxTokens(extensionResourceLoaderService, resources.joinPath(resources.dirname(themeLocation), tokenColors), result);
+				await _loadSyntaxTokens(fileService, resources.joinPath(resources.dirname(themeLocation), tokenColors), result);
 			} else {
 				return Promise.reject(new Error(nls.localize({ key: 'error.invalidformat.tokenColors', comment: ['{0} will be replaced by a path. Values in quotes should not be translated.'] }, "Problem parsing color theme file: {0}. Property 'tokenColors' should be either an array specifying colors or a path to a TextMate theme file", themeLocation.toString())));
 			}
@@ -770,12 +770,12 @@ async function _loadColorTheme(extensionResourceLoaderService: IExtensionResourc
 			}
 		}
 	} else {
-		return _loadSyntaxTokens(extensionResourceLoaderService, themeLocation, result);
+		return _loadSyntaxTokens(fileService, themeLocation, result);
 	}
 }
 
-function _loadSyntaxTokens(extensionResourceLoaderService: IExtensionResourceLoaderService, themeLocation: URI, result: { textMateRules: ITextMateThemingRule[], colors: IColorMap }): Promise<any> {
-	return extensionResourceLoaderService.readExtensionResource(themeLocation).then(content => {
+function _loadSyntaxTokens(fileService: IThemeFileService, themeLocation: URI, result: { textMateRules: ITextMateThemingRule[], colors: IColorMap }): Promise<any> {
+	return fileService.readFile(themeLocation).then(content => {
 		try {
 			let contentValue = parsePList(content);
 			let settings: ITextMateThemingRule[] = contentValue.settings;

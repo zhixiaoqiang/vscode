@@ -6,7 +6,7 @@
 import * as nls from 'vs/nls';
 import * as types from 'vs/base/common/types';
 import { IExtensionService } from 'vs/workbench/services/extensions/common/extensions';
-import { IWorkbenchThemeService, IWorkbenchColorTheme, IWorkbenchFileIconTheme, ExtensionData, VS_LIGHT_THEME, VS_DARK_THEME, VS_HC_THEME, ThemeSettings, IWorkbenchProductIconTheme, ThemeSettingTarget } from 'vs/workbench/services/themes/common/workbenchThemeService';
+import { IWorkbenchThemeService, IWorkbenchColorTheme, IWorkbenchFileIconTheme, ExtensionData, VS_LIGHT_THEME, VS_DARK_THEME, VS_HC_THEME, ThemeSettings, IWorkbenchProductIconTheme, ThemeSettingTarget, IThemeFileService } from 'vs/workbench/services/themes/common/workbenchThemeService';
 import { IStorageService, StorageScope, StorageTarget } from 'vs/platform/storage/common/storage';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 import { Registry } from 'vs/platform/registry/common/platform';
@@ -103,14 +103,16 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 
 	private themeSettingIdBeforeSchemeSwitch: string | undefined;
 
+	private readonly themeFileService: IThemeFileService;
+
 	constructor(
 		@IExtensionService extensionService: IExtensionService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@IWorkbenchEnvironmentService readonly environmentService: IWorkbenchEnvironmentService,
-		@IFileService private readonly fileService: IFileService,
-		@IExtensionResourceLoaderService private readonly extensionResourceLoaderService: IExtensionResourceLoaderService,
+		@IFileService fileService: IFileService,
+		@IExtensionResourceLoaderService extensionResourceLoaderService: IExtensionResourceLoaderService,
 		@IWorkbenchLayoutService readonly layoutService: IWorkbenchLayoutService,
 		@ILogService private readonly logService: ILogService,
 		@IHostColorSchemeService private readonly hostColorService: IHostColorSchemeService,
@@ -118,6 +120,13 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 		@IUserDataInitializationService readonly userDataInitializationService: IUserDataInitializationService
 	) {
 		this.container = layoutService.container;
+
+		this.themeFileService = {
+			readFile: (uri: URI) => {
+				return extensionResourceLoaderService.readExtensionResource(uri);
+			}
+		};
+
 		this.settings = new ThemeConfiguration(configurationService);
 
 		this.colorThemeRegistry = new ThemeRegistry(colorThemesExtPoint, ColorThemeData.fromExtensionTheme);
@@ -441,7 +450,7 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 			if (!themeData) {
 				return Promise.resolve(null);
 			}
-			return themeData.ensureLoaded(this.extensionResourceLoaderService).then(_ => {
+			return themeData.ensureLoaded(this.themeFileService).then(_ => {
 				themeData.setCustomizations(this.settings);
 				return this.applyTheme(themeData, settingsTarget);
 			}, error => {
@@ -453,7 +462,7 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 	private reloadCurrentColorTheme() {
 		return this.colorThemeSequencer.queue(async () => {
 			try {
-				await this.currentColorTheme.reload(this.extensionResourceLoaderService);
+				await this.currentColorTheme.reload(this.themeFileService);
 				this.currentColorTheme.setCustomizations(this.settings);
 				await this.applyTheme(this.currentColorTheme, undefined, false);
 			} catch (error) {
@@ -573,7 +582,7 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 			if (iconTheme !== this.currentFileIconTheme.id || !this.currentFileIconTheme.isLoaded) {
 
 				const newThemeData = this.fileIconThemeRegistry.findThemeById(iconTheme) || FileIconThemeData.noIconTheme;
-				await newThemeData.ensureLoaded(this.fileService);
+				await newThemeData.ensureLoaded(this.themeFileService);
 
 				this.applyAndSetFileIconTheme(newThemeData); // updates this.currentFileIconTheme
 			}
@@ -592,7 +601,7 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 
 	private async reloadCurrentFileIconTheme() {
 		return this.fileIconThemeSequencer.queue(async () => {
-			await this.currentFileIconTheme.reload(this.fileService);
+			await this.currentFileIconTheme.reload(this.themeFileService);
 			this.applyAndSetFileIconTheme(this.currentFileIconTheme);
 		});
 	}
@@ -648,7 +657,7 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 			iconTheme = iconTheme || '';
 			if (iconTheme !== this.currentProductIconTheme.id || !this.currentProductIconTheme.isLoaded) {
 				const newThemeData = this.productIconThemeRegistry.findThemeById(iconTheme) || ProductIconThemeData.defaultTheme;
-				await newThemeData.ensureLoaded(this.fileService, this.logService);
+				await newThemeData.ensureLoaded(this.themeFileService, this.logService);
 
 				this.applyAndSetProductIconTheme(newThemeData); // updates this.currentProductIconTheme
 			}
@@ -666,7 +675,7 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 
 	private async reloadCurrentProductIconTheme() {
 		return this.productIconThemeSequencer.queue(async () => {
-			await this.currentProductIconTheme.reload(this.fileService, this.logService);
+			await this.currentProductIconTheme.reload(this.themeFileService, this.logService);
 			this.applyAndSetProductIconTheme(this.currentProductIconTheme);
 		});
 	}

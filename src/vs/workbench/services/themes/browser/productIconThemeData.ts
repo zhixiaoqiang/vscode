@@ -8,8 +8,7 @@ import * as nls from 'vs/nls';
 import * as Paths from 'vs/base/common/path';
 import * as resources from 'vs/base/common/resources';
 import * as Json from 'vs/base/common/json';
-import { ExtensionData, IThemeExtensionPoint, IWorkbenchProductIconTheme } from 'vs/workbench/services/themes/common/workbenchThemeService';
-import { IFileService } from 'vs/platform/files/common/files';
+import { ExtensionData, IThemeExtensionPoint, IWorkbenchProductIconTheme, IThemeFileService } from 'vs/workbench/services/themes/common/workbenchThemeService';
 import { getParseErrorMessage } from 'vs/base/common/jsonErrorMessages';
 import { asCSSUrl } from 'vs/base/browser/dom';
 import { IStorageService, StorageScope, StorageTarget } from 'vs/platform/storage/common/storage';
@@ -44,15 +43,15 @@ export class ProductIconThemeData implements IWorkbenchProductIconTheme {
 		this.isLoaded = false;
 	}
 
-	public ensureLoaded(fileService: IFileService, logService: ILogService): Promise<string | undefined> {
+	public ensureLoaded(fileService: IThemeFileService, logService: ILogService): Promise<string | undefined> {
 		return !this.isLoaded ? this.load(fileService, logService) : Promise.resolve(this.styleSheetContent);
 	}
 
-	public reload(fileService: IFileService, logService: ILogService): Promise<string | undefined> {
+	public reload(fileService: IThemeFileService, logService: ILogService): Promise<string | undefined> {
 		return this.load(fileService, logService);
 	}
 
-	private load(fileService: IFileService, logService: ILogService): Promise<string | undefined> {
+	private load(fileService: IThemeFileService, logService: ILogService): Promise<string | undefined> {
 		const location = this.location;
 		if (!location) {
 			return Promise.resolve(this.styleSheetContent);
@@ -168,10 +167,10 @@ interface ProductIconThemeDocument {
 	fonts: FontDefinition[];
 }
 
-function _loadProductIconThemeDocument(fileService: IFileService, location: URI): Promise<ProductIconThemeDocument> {
+function _loadProductIconThemeDocument(fileService: IThemeFileService, location: URI): Promise<ProductIconThemeDocument> {
 	return fileService.readFile(location).then((content) => {
 		let errors: Json.ParseError[] = [];
-		let contentValue = Json.parse(content.value.toString(), errors);
+		let contentValue = Json.parse(content, errors);
 		if (errors.length > 0) {
 			return Promise.reject(new Error(nls.localize('error.cannotparseicontheme', "Problems parsing product icons file: {0}", errors.map(e => getParseErrorMessage(e.error)).join(', '))));
 		} else if (Json.getNodeType(contentValue) !== 'object') {

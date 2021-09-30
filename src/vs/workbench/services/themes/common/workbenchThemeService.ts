@@ -9,6 +9,7 @@ import { Color } from 'vs/base/common/color';
 import { IColorTheme, IThemeService, IFileIconTheme } from 'vs/platform/theme/common/themeService';
 import { ConfigurationTarget } from 'vs/platform/configuration/common/configuration';
 import { isBoolean, isString } from 'vs/base/common/types';
+import { URI } from 'vs/base/common/uri';
 
 export const IWorkbenchThemeService = refineServiceDecorator<IThemeService, IWorkbenchThemeService>(IThemeService);
 
@@ -201,4 +202,8 @@ export interface IThemeExtensionPoint {
 	path: string;
 	uiTheme?: typeof VS_LIGHT_THEME | typeof VS_DARK_THEME | typeof VS_HC_THEME;
 	_watch: boolean; // unsupported options to watch location
+}
+
+export interface IThemeFileService {
+	readFile(uri: URI): Promise<string>;
 }
