@@ -465,7 +465,10 @@ export class GettingStartedPage extends EditorPane {
 					const generalizedLocale = locale?.replace(/-.*$/, '');
 					const generalizedLocalizedPath = path.with({ path: path.path.replace(/\.md$/, `.nls.${generalizedLocale}.md`) });
 
-					const fileExists = (file: URI) => this.fileService.resolve(file).then(() => true).catch(() => false);
+					const fileExists = (file: URI) => this.fileService
+						.resolve(file, { resolveMetadata: true })
+						.then((stat) => !!stat.size) // Double check the file actually has content for fileSystemProviders that fake `stat`. #131809
+						.catch(() => false);
 
 					const [localizedFileExists, generalizedLocalizedFileExists] = await Promise.all([
 						fileExists(localizedPath),
@@ -635,9 +638,9 @@ export class GettingStartedPage extends EditorPane {
 
 				webview.onMessage(e => {
 					const message: string = e.message as string;
-					if (message.startsWith('command:')) {
-						this.openerService.open(message, { allowCommands: true });
-					} else if (message.startsWith('setTheme:')) {
+					if (message.startsWith('command$')) {
+						this.openerService.open(message.replace('$', ':'), { allowCommands: true });
+					} else if (message.startsWith('setTheme$')) {
 						this.configurationService.updateValue(ThemeSettings.COLOR_THEME, message.slice('setTheme:'.length), ConfigurationTarget.USER);
 					} else {
 						console.error('Unexpected message', message);
@@ -794,9 +797,9 @@ export class GettingStartedPage extends EditorPane {
 			</body>
 			<script nonce="${nonce}">
 				const vscode = acquireVsCodeApi();
-				document.querySelectorAll('[on-checked]').forEach(el => {
+				document.querySelectorAll('[when-checked]').forEach(el => {
 					el.addEventListener('click', () => {
-						vscode.postMessage(el.getAttribute('on-checked'));
+						vscode.postMessage(el.getAttribute('when-checked'));
 					});
 				});
 
@@ -1004,7 +1007,9 @@ export class GettingStartedPage extends EditorPane {
 				.filter(recent => !this.workspaceContextService.isCurrentWorkspace(isRecentWorkspace(recent) ? recent.workspace : recent.folderUri))
 				.map(recent => ({ ...recent, id: isRecentWorkspace(recent) ? recent.workspace.id : recent.folderUri.toString() }));
 
-			const updateEntries = () => { recentlyOpenedList.setEntries(workspacesWithID); };
+			const updateEntries = () => {
+				recentlyOpenedList.setEntries(workspacesWithID);
+			};
 
 			updateEntries();
 
@@ -1103,7 +1108,6 @@ export class GettingStartedPage extends EditorPane {
 				title: localize('walkthroughs', "Walkthroughs"),
 				klass: 'getting-started',
 				limit: 5,
-				empty: undefined, more: undefined,
 				footer: $('span.button-link.see-all-walkthroughs', { 'x-dispatch': 'seeAllWalkthroughs' }, localize('showAll', "More...")),
 				renderElement: renderGetttingStaredWalkthrough,
 				rankElement: rankWalkthrough,
@@ -1159,13 +1163,13 @@ export class GettingStartedPage extends EditorPane {
 			bar.style.width = `${progress}%`;
 
 
-			(element.parentElement as HTMLElement).classList[stats.stepsComplete === 0 ? 'add' : 'remove']('no-progress');
+			(element.parentElement as HTMLElement).classList.toggle('no-progress', stats.stepsComplete === 0);
 
 			if (stats.stepsTotal === stats.stepsComplete) {
 				bar.title = localize('gettingStarted.allStepsComplete', "All {0} steps complete!", stats.stepsComplete);
 			}
 			else {
-				bar.title = localize('gettingStarted.someStepsComplete', "{0} of {1} steps complete", stats.stepsTotal, stats.stepsComplete);
+				bar.title = localize('gettingStarted.someStepsComplete', "{0} of {1} steps complete", stats.stepsComplete, stats.stepsTotal);
 			}
 		});
 	}

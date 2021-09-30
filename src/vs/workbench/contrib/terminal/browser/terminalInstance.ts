@@ -585,8 +585,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		if (!this._wrapperElement) {
 			return undefined;
 		}
-
-		TerminalInstance._lastKnownCanvasDimensions = new dom.Dimension(width, height - 2 + (this._hasScrollBar ? -scrollbarHeight : 0)/* bottom padding */);
+		TerminalInstance._lastKnownCanvasDimensions = new dom.Dimension(width, height - 2 + (this._hasScrollBar && !this._horizontalScrollbar ? -scrollbarHeight : 0)/* bottom padding */);
 		return TerminalInstance._lastKnownCanvasDimensions;
 	}
 
@@ -1888,7 +1887,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 	async setFixedDimensions(): Promise<void> {
 		const cols = await this._quickInputService.input({
 			title: nls.localize('setTerminalDimensionsColumn', "Set Fixed Dimensions: Column"),
-			placeHolder: 'Enter a number or leave empty for automatic width',
+			placeHolder: 'Enter a number of columns or leave empty for automatic width',
 			validateInput: async (text) => text.length > 0 && !text.match(/^\d+$/) ? { content: 'Enter a number or leave empty size automatically', severity: Severity.Error } : undefined
 		});
 		if (cols === undefined) {
@@ -1898,7 +1897,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		this._terminalHasFixedWidth.set(!!this._fixedCols);
 		const rows = await this._quickInputService.input({
 			title: nls.localize('setTerminalDimensionsRow', "Set Fixed Dimensions: Row"),
-			placeHolder: 'Enter a number or leave empty for automatic height',
+			placeHolder: 'Enter a number of rows or leave empty for automatic height',
 			validateInput: async (text) => text.length > 0 && !text.match(/^\d+$/) ? { content: 'Enter a number or leave empty size automatically', severity: Severity.Error } : undefined
 		});
 		if (rows === undefined) {
@@ -1907,6 +1906,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		this._fixedRows = this._parseFixedDimension(rows);
 		this._addScrollbar();
 		this._resize();
+		this.focus();
 	}
 
 	private _parseFixedDimension(value: string): number | undefined {
@@ -1945,6 +1945,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 				await this._addScrollbar();
 			}
 		}
+		this.focus();
 	}
 
 	private async _addScrollbar(): Promise<void> {
@@ -2457,7 +2458,7 @@ export class TerminalLabelComputer extends Disposable {
 			separator: { label: this._configHelper.config.tabs.separator }
 		};
 		if (!labelTemplate) {
-			return '';
+			return this._instance.processName || '';
 		}
 		if (this._instance.staticTitle && labelType === TerminalLabelType.Title) {
 			return this._instance.staticTitle.replace(/[\n\r\t]/g, '') || templateProperties.process?.replace(/[\n\r\t]/g, '') || '';
@@ -2469,7 +2470,7 @@ export class TerminalLabelComputer extends Disposable {
 
 		//Remove special characters that could mess with rendering
 		const label = template(labelTemplate, (templateProperties as unknown) as { [key: string]: string | ISeparator | undefined | null; }).replace(/[\n\r\t]/g, '');
-		return label === '' && labelType === TerminalLabelType.Title ? (this._instance.processName || '') : label;
+		return label.trim() === '' && labelType === TerminalLabelType.Title ? (this._instance.processName || '') : label;
 	}
 
 	pathsEqual(path1?: string | null, path2?: string) {

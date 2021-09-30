@@ -17,7 +17,7 @@ import * as objects from 'vs/base/common/objects';
 import * as platform from 'vs/base/common/platform';
 import { URI } from 'vs/base/common/uri';
 import { IRemoteConsoleLog, log } from 'vs/base/common/console';
-import { logRemoteEntry } from 'vs/workbench/services/extensions/common/remoteConsoleUtil';
+import { logRemoteEntry, logRemoteEntryIfError } from 'vs/workbench/services/extensions/common/remoteConsoleUtil';
 import { IMessagePassingProtocol } from 'vs/base/parts/ipc/common/ipc';
 import { PersistentProtocol } from 'vs/base/parts/ipc/common/ipc.net';
 import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-sandbox/environmentService';
@@ -47,6 +47,7 @@ import { join } from 'vs/base/common/path';
 import { IShellEnvironmentService } from 'vs/workbench/services/environment/electron-sandbox/shellEnvironmentService';
 import { IExtensionHostProcessOptions, IExtensionHostStarter } from 'vs/platform/extensions/common/extensionHostStarter';
 import { SerializedError } from 'vs/base/common/errors';
+import { StopWatch } from 'vs/base/common/stopwatch';
 
 export interface ILocalProcessExtensionHostInitData {
 	readonly autoStart: boolean;
@@ -195,6 +196,16 @@ export class LocalProcessExtensionHost implements IExtensionHost {
 		this.terminate();
 	}
 
+	private async _createExtensionHost(): Promise<{ id: string; }> {
+		const sw = new StopWatch(false);
+		const result = await this._extensionHostStarter.createExtensionHost();
+		if (sw.elapsed() > 20) {
+			// communicating to the shared process took more than 20ms
+			this._logService.info(`[LocalProcessExtensionHost]: IExtensionHostStarter.createExtensionHost() took ${sw.elapsed()} ms.`);
+		}
+		return result;
+	}
+
 	public start(): Promise<IMessagePassingProtocol> | null {
 		if (this._terminating) {
 			// .terminate() was called
@@ -203,7 +214,7 @@ export class LocalProcessExtensionHost implements IExtensionHost {
 
 		if (!this._messageProtocol) {
 			this._messageProtocol = Promise.all([
-				this._extensionHostStarter.createExtensionHost(),
+				this._createExtensionHost(),
 				this._tryListenOnPipe(),
 				this._tryFindDebugPort(),
 				this._shellEnvironmentService.getShellEnv(),
@@ -221,6 +232,10 @@ export class LocalProcessExtensionHost implements IExtensionHost {
 					VSCODE_LOG_STACK: !this._isExtensionDevTestFromCli && (this._isExtensionDevHost || !this._environmentService.isBuilt || this._productService.quality !== 'stable' || this._environmentService.verbose),
 					VSCODE_LOG_LEVEL: this._environmentService.verbose ? 'trace' : this._environmentService.log
 				});
+
+				// Unset `DEBUG`, as an invalid value might lead to extension host crashes
+				// See https://github.com/microsoft/vscode/issues/130072
+				delete env['DEBUG'];
 
 				if (platform.isMacintosh) {
 					// Unset `DYLD_LIBRARY_PATH`, as it leads to extension host crashes
@@ -361,7 +376,12 @@ export class LocalProcessExtensionHost implements IExtensionHost {
 					}, 10000);
 				}
 
+				const sw = new StopWatch(false);
 				return this._extensionHostProcess.start(opts).then(() => {
+					if (sw.elapsed() > 500) {
+						// communicating to the shared process took more than 500ms
+						this._logService.info(`[LocalProcessExtensionHost]: IExtensionHostStarter.start() took ${sw.elapsed()} ms.`);
+					}
 					// Initialize extension host process with hand shakes
 					return this._tryExtHostHandshake().then((protocol) => {
 						clearTimeout(startupTimeoutHandle);
@@ -433,7 +453,7 @@ export class LocalProcessExtensionHost implements IExtensionHost {
 					this._namedPipeServer.close();
 					this._namedPipeServer = null;
 				}
-				reject('timeout');
+				reject('The local extension host took longer than 60s to connect.');
 			}, 60 * 1000);
 
 			this._namedPipeServer!.on('connection', socket => {
@@ -459,7 +479,7 @@ export class LocalProcessExtensionHost implements IExtensionHost {
 				let timeoutHandle: NodeJS.Timer;
 				const installTimeoutCheck = () => {
 					timeoutHandle = setTimeout(() => {
-						reject('timeout');
+						reject('The local extenion host took longer than 60s to send its ready message.');
 					}, 60 * 1000);
 				};
 				const uninstallTimeoutCheck = () => {
@@ -552,14 +572,12 @@ export class LocalProcessExtensionHost implements IExtensionHost {
 	}
 
 	private _logExtensionHostMessage(entry: IRemoteConsoleLog) {
-
 		if (this._isExtensionDevTestFromCli) {
-
-			// Log on main side if running tests from cli
+			// If running tests from cli, log to the log service everything
 			logRemoteEntry(this._logService, entry);
 		} else {
-
-			// Send to local console
+			// Log to the log service only errors and log everything to local console
+			logRemoteEntryIfError(this._logService, entry, 'Extension Host');
 			log(entry, 'Extension Host');
 		}
 	}
