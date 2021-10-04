@@ -19,7 +19,6 @@ import { URI } from 'vs/base/common/uri';
 import { parse as parsePList } from 'vs/workbench/services/themes/common/plistParser';
 import { TokenStyle, SemanticTokenRule, ProbeScope, getTokenClassificationRegistry, TokenStyleValue, TokenStyleData, parseClassifierString } from 'vs/platform/theme/common/tokenClassificationRegistry';
 import { MatcherWithPriority, Matcher, createMatchers } from 'vs/workbench/services/themes/common/textMateScopeMatcher';
-import { IExtensionResourceLoaderService } from 'vs/workbench/services/extensionResourceLoader/common/extensionResourceLoader';
 import { CharCode } from 'vs/base/common/charCode';
 import { StorageScope, IStorageService, StorageTarget } from 'vs/platform/storage/common/storage';
 import { ThemeConfiguration } from 'vs/workbench/services/themes/common/themeConfiguration';
@@ -672,7 +671,7 @@ export class ColorThemeData implements IWorkbenchColorTheme {
 		return themeData;
 	}
 
-	static async fromMarketplace(productService: IProductService, fileService: IExtensionResourceLoaderService, extensionData: { publisher: string, name: string, version: string }): Promise<ColorThemeData[]> {
+	static async fromMarketplace(productService: IProductService, fileService: IThemeFileService, extensionData: { publisher: string, name: string, version: string }): Promise<ColorThemeData[]> {
 
 		const resourceUrlTemplate = productService.extensionsGallery?.resourceUrlTemplate;
 		if (!resourceUrlTemplate) {
@@ -681,15 +680,18 @@ export class ColorThemeData implements IWorkbenchColorTheme {
 		try {
 			const extensionLocation = URI.parse(format2(resourceUrlTemplate, { publisher: extensionData.publisher, name: extensionData.name, version: extensionData.version, path: 'extension' }));
 
-			const manifest = await fileService.readExtensionResource(resources.joinPath(extensionLocation, 'package.json'));
+			const manifest = await fileService.readFile(resources.joinPath(extensionLocation, 'package.json'));
 
 			const manifestObj = JSON.parse(manifest);
 			const themes = manifestObj.contributes?.themes;
 			if (Array.isArray(themes)) {
 				const res = [];
 				for (const theme of themes) {
-					const data: ExtensionData = { extensionPublisher: extensionData.publisher, extensionId: `${extensionData.publisher}.${extensionData.name}`, extensionName: extensionData.name, extensionIsBuiltin: false };
-					res.push(ColorThemeData.fromExtensionTheme(theme, extensionLocation, data));
+					if (types.isString(theme.path)) {
+						const themeLocation = resources.joinPath(extensionLocation, theme.path);
+						const data: ExtensionData = { extensionPublisher: extensionData.publisher, extensionId: `${extensionData.publisher}.${extensionData.name}`, extensionName: extensionData.name, extensionIsBuiltin: false };
+						res.push(ColorThemeData.fromExtensionTheme(theme, themeLocation, data));
+					}
 				}
 				return res;
 			}

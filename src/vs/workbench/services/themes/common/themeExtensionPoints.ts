@@ -118,6 +118,7 @@ export interface IThemeData {
 export class ThemeRegistry<T extends IThemeData> {
 
 	private extensionThemes: T[];
+	private marketplaceThemes: T[];
 
 	private readonly onDidChangeEmitter = new Emitter<ThemeChangeEvent<T>>();
 	public readonly onDidChange: Event<ThemeChangeEvent<T>> = this.onDidChangeEmitter.event;
@@ -129,13 +130,14 @@ export class ThemeRegistry<T extends IThemeData> {
 		private builtInTheme: T | undefined = undefined
 	) {
 		this.extensionThemes = [];
+		this.marketplaceThemes = [];
 		this.initialize();
 	}
 
-	public add(themes: T[]) {
+	public addMarketplaceThemes(themes: T[]) {
 		if (themes.length) {
-			this.extensionThemes.push(...themes);
-			this.onDidChangeEmitter.fire({ themes: this.extensionThemes, added: themes, removed: [] });
+			this.marketplaceThemes.push(...themes);
+			this.onDidChangeEmitter.fire({ themes: this.getThemes(), added: themes, removed: [] });
 		}
 	}
 
@@ -165,7 +167,7 @@ export class ThemeRegistry<T extends IThemeData> {
 				}
 			}
 			const removed = Object.values(previousIds);
-			this.onDidChangeEmitter.fire({ themes: this.extensionThemes, added, removed });
+			this.onDidChangeEmitter.fire({ themes: this.getThemes(), added, removed });
 		});
 	}
 
@@ -250,7 +252,7 @@ export class ThemeRegistry<T extends IThemeData> {
 	}
 
 	public getThemes(): T[] {
-		return this.extensionThemes;
+		return this.extensionThemes.concat(this.marketplaceThemes);
 	}
 
 }

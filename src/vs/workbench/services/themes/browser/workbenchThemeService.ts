@@ -150,8 +150,8 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 		console.log('setTimeout');
 		setTimeout(async () => {
 			console.log('fromMarketplace');
-			const themes = await ColorThemeData.fromMarketplace(productService, extensionResourceLoaderService, { publisher: 'azemoh', name: 'one-monokai', version: '0.5.0' });
-			this.colorThemeRegistry.add(themes);
+			const themes = await ColorThemeData.fromMarketplace(productService, this.themeFileService, { publisher: 'azemoh', name: 'one-monokai', version: '0.5.0' });
+			this.colorThemeRegistry.addMarketplaceThemes(themes);
 		}, 400);
 
 		// In order to avoid paint flashing for tokens, because
@@ -593,7 +593,7 @@ export class WorkbenchThemeService implements IWorkbenchThemeService {
 			if (themeData.isLoaded && settingsTarget !== 'preview' && (!themeData.location || !getRemoteAuthority(themeData.location))) {
 				themeData.toStorage(this.storageService);
 			}
-			await this.settings.setFileIconTheme(this.currentFileIconTheme, settingsTarget);
+			await this.settings.setFileIconTheme(themeData, settingsTarget);
 
 			return themeData;
 		});
