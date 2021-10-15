@@ -419,13 +419,7 @@ export class ContextScopedSuggestEnabledInputWithHistory extends SuggestEnabledI
 
 // Override styles in selections.ts
 registerThemingParticipant((theme, collector) => {
-	let selectionColor = theme.getColor(selectionBackground);
-	if (selectionColor) {
-		selectionColor = selectionColor.transparent(0.4);
-	} else {
-		selectionColor = theme.getColor(editorSelectionBackground);
-	}
-
+	const selectionColor = theme.getColor(selectionBackground);
 	if (selectionColor) {
 		collector.addRule(`.suggest-input-container .monaco-editor .focused .selected-text { background-color: ${selectionColor}; }`);
 	}
