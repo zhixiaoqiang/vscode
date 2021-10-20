@@ -20,8 +20,8 @@
 	// the related CSS and NLS counterparts.
 	bootstrapWindow.load([
 		'vs/workbench/workbench.desktop.sandbox.main',
-		'vs/nls!vs/workbench/workbench.desktop.main',
-		'vs/css!vs/workbench/workbench.desktop.main'
+		'vs/nls!vs/workbench/workbench.desktop.sandbox.main',
+		'vs/css!vs/workbench/workbench.desktop.sandbox.main'
 	],
 		function (_, configuration) {
 
