@@ -715,6 +715,43 @@ class ResourceCommandResolver {
 	}
 }
 
+class ResourceContextKeyManager {
+
+	private disposables: Disposable[] = [];
+
+	constructor(private readonly repository: Repository) {
+		this.disposables.push(window.onDidChangeActiveTextEditor(editor => {
+			this.setResourceHasChangesContextKey(editor?.document.uri);
+		}));
+
+		this.disposables.push(repository.onDidRunGitStatus(() => {
+			this.setResourceHasChangesContextKey();
+		}));
+	}
+
+	private getResources(): Resource[] {
+		return [
+			...this.repository.indexGroup.resourceStates,
+			...this.repository.mergeGroup.resourceStates,
+			...this.repository.workingTreeGroup.resourceStates,
+			...this.repository.untrackedGroup.resourceStates
+		];
+	}
+
+	private setResourceHasChangesContextKey(uri?: Uri): void {
+		uri = uri ? uri : (window.activeTextEditor && window.activeTextEditor.document.uri);
+
+		const resourceHasChanges = this.getResources()
+			.some(resource => resource.resourceUri.toString() === uri?.toString());
+		commands.executeCommand('setContext', 'git.resourceHasChanges', resourceHasChanges);
+	}
+
+	dispose(): void {
+		this.disposables.forEach(d => d.dispose());
+		this.dispose();
+	}
+}
+
 export class Repository implements Disposable {
 
 	private _onDidChangeRepository = new EventEmitter<Uri>();
@@ -959,9 +996,7 @@ export class Repository implements Disposable {
 			}
 		}, null, this.disposables);
 
-		this.disposables.push(window.onDidChangeActiveTextEditor(editor => {
-			this.setResourceHasChangesContext(editor?.document.uri);
-		}));
+		this.disposables.push(new ResourceContextKeyManager(this));
 
 		const statusBar = new StatusBarCommands(this, remoteSourceProviderRegistry);
 		this.disposables.push(statusBar);
@@ -1966,9 +2001,6 @@ export class Repository implements Disposable {
 		// set count badge
 		this.setCountBadge();
 
-		// Update active resource context key
-		this.setResourceHasChangesContext();
-
 		this._onDidChangeStatus.fire();
 
 		this._sourceControl.commitTemplate = await this.getInputTemplate();
@@ -2153,17 +2185,6 @@ export class Repository implements Disposable {
 		} else {
 			this._sourceControl.inputBox.placeholder = localize('commitMessage', "Message ({0} to commit)");
 		}
-	}
-
-	private setResourceHasChangesContext(uri?: Uri): void {
-		uri = uri ? uri : (window.activeTextEditor && window.activeTextEditor.document.uri);
-
-		commands.executeCommand('setContext', 'git.resourceHasChanges',
-			[...this.indexGroup.resourceStates,
-			...this.mergeGroup.resourceStates,
-			...this.workingTreeGroup.resourceStates,
-			...this.untrackedGroup.resourceStates]
-				.some(resource => resource.resourceUri.toString() === uri?.toString()));
 	}
 
 	dispose(): void {
