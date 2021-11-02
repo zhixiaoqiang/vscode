@@ -959,6 +959,10 @@ export class Repository implements Disposable {
 			}
 		}, null, this.disposables);
 
+		this.disposables.push(window.onDidChangeActiveTextEditor(editor => {
+			this.setResourceHasChangesContext(editor?.document.uri);
+		}));
+
 		const statusBar = new StatusBarCommands(this, remoteSourceProviderRegistry);
 		this.disposables.push(statusBar);
 		statusBar.onDidChange(() => this._sourceControl.statusBarCommands = statusBar.commands, null, this.disposables);
@@ -1873,7 +1877,6 @@ export class Repository implements Disposable {
 		this._submodules = submodules!;
 		this.rebaseCommit = rebaseCommit;
 
-
 		const untrackedChanges = scopedConfig.get<'mixed' | 'separate' | 'hidden'>('untrackedChanges');
 		const index: Resource[] = [];
 		const workingTree: Resource[] = [];
@@ -1963,8 +1966,8 @@ export class Repository implements Disposable {
 		// set count badge
 		this.setCountBadge();
 
-		// Update context key with changed resources
-		commands.executeCommand('setContext', 'git.changedResources', [...merge, ...index, ...workingTree, ...untracked].map(r => r.resourceUri.fsPath.toString()));
+		// Update active resource context key
+		this.setResourceHasChangesContext();
 
 		this._onDidChangeStatus.fire();
 
@@ -2150,6 +2153,17 @@ export class Repository implements Disposable {
 		} else {
 			this._sourceControl.inputBox.placeholder = localize('commitMessage', "Message ({0} to commit)");
 		}
+	}
+
+	private setResourceHasChangesContext(uri?: Uri): void {
+		uri = uri ? uri : (window.activeTextEditor && window.activeTextEditor.document.uri);
+
+		commands.executeCommand('setContext', 'git.resourceHasChanges',
+			[...this.indexGroup.resourceStates,
+			...this.mergeGroup.resourceStates,
+			...this.workingTreeGroup.resourceStates,
+			...this.untrackedGroup.resourceStates]
+				.some(resource => resource.resourceUri.toString() === uri?.toString()));
 	}
 
 	dispose(): void {
