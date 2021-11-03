@@ -17,6 +17,8 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 	private beforeUnloadListener: IDisposable | undefined = undefined;
 
 	private disableBeforeUnloadVeto = false;
+
+	private didBeforeUnload = false;
 	private didUnload = false;
 
 	constructor(
@@ -30,39 +32,66 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 
 	private registerListeners(): void {
 
+		// Listen to `pageshow` to handle unsupported `persisted: true` cases
+		this._register(addDisposableListener(window, EventType.PAGE_SHOW, (e: PageTransitionEvent) => this.onLoad(e)));
+
 		// Listen to `beforeUnload` to support to veto
 		this.beforeUnloadListener = addDisposableListener(window, EventType.BEFORE_UNLOAD, (e: BeforeUnloadEvent) => this.onBeforeUnload(e));
 
 		// Listen to `pagehide` to support orderly shutdown
 		// We explicitly do not listen to `unload` event
-		// which would disable certain browser caching
-		// (https://web.dev/bfcache/)
+		// which would disable certain browser caching.
+		// We currently do not handle the `persisted` property
+		// (https://github.com/microsoft/vscode/issues/136216)
 		this._register(addDisposableListener(window, EventType.PAGE_HIDE, () => this.onUnload()));
+	}
+
+	private onLoad(event: PageTransitionEvent): void {
+
+		// We only really care about page-show events
+		// where the browser indicates to us that the
+		// page was restored from cache and not freshly
+		// loaded.
+		const wasRestoredFromCache = event.persisted;
+		if (!wasRestoredFromCache) {
+			return;
+		}
+
+		// We only really care about `persisted` page-show
+		// events if there is a chance that we were unloaded
+		// before and now potentially have a disposed workbench
+		// that is non-functional.
+		// To be on the safe side, we ignore this event in any
+		// other cases to not accidentally reload the workbench.
+		const handleLoadEvent = this.didBeforeUnload;
+		if (!handleLoadEvent) {
+			return;
+		}
+
+		// At this point, we know that the page was restored from
+		// cache even though it was potentially unloaded before,
+		// so in order to get back to a functional workbench, we
+		// currently can only reload the window
+		// Docs: https://web.dev/bfcache/#optimize-your-pages-for-bfcache
+		// Refs: https://github.com/microsoft/vscode/issues/136035
+		this.withExpectedShutdown({ disableShutdownHandling: true }, () => window.location.reload());
 	}
 
 	private onBeforeUnload(event: BeforeUnloadEvent): void {
 
 		// Unload without veto support
 		if (this.disableBeforeUnloadVeto) {
-			this.onBeforeUnloadWithoutVetoSupport();
+			this.logService.info('[lifecycle] onBeforeUnload triggered and handled without veto support');
+
+			this.doShutdown();
 		}
 
 		// Unload with veto support
 		else {
-			this.onBeforeUnloadWithVetoSupport(event);
+			this.logService.info('[lifecycle] onBeforeUnload triggered and handled with veto support');
+
+			this.doShutdown(() => this.vetoBeforeUnload(event));
 		}
-	}
-
-	private onBeforeUnloadWithoutVetoSupport(): void {
-		this.logService.info('[lifecycle] onBeforeUnload triggered and handled without veto support');
-
-		this.doShutdown();
-	}
-
-	private onBeforeUnloadWithVetoSupport(event: BeforeUnloadEvent): void {
-		this.logService.info('[lifecycle] onBeforeUnload triggered and handled with veto support');
-
-		this.doShutdown(() => this.vetoBeforeUnload(event));
 	}
 
 	private vetoBeforeUnload(event: BeforeUnloadEvent): void {
@@ -101,15 +130,17 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 		this.doShutdown();
 	}
 
-	private doShutdown(handleVeto?: () => void): void {
+	private doShutdown(vetoShutdown?: () => void): void {
 		const logService = this.logService;
+
+		this.didBeforeUnload = true;
 
 		let veto = false;
 
 		// Before Shutdown
 		this._onBeforeShutdown.fire({
 			veto(value, id) {
-				if (typeof handleVeto === 'function') {
+				if (typeof vetoShutdown === 'function') {
 					if (value instanceof Promise) {
 						logService.error(`[lifecycle] Long running operations before shutdown are unsupported in the web (id: ${id})`);
 
@@ -127,10 +158,8 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 		});
 
 		// Veto: handle if provided
-		if (veto && typeof handleVeto === 'function') {
-			handleVeto();
-
-			return;
+		if (veto && typeof vetoShutdown === 'function') {
+			return vetoShutdown();
 		}
 
 		// No veto, continue to shutdown
