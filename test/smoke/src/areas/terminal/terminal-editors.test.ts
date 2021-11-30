@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { fail } from 'assert';
 import { ParsedArgs } from 'minimist';
 import { Application, Terminal, TerminalCommandId, TerminalCommandIdWithValue } from '../../../../automation/out';
 
@@ -17,6 +18,7 @@ export function setup(opts: ParsedArgs) {
 		});
 
 		it('should update color of the tab', async () => {
+			fail();
 			await terminal.runCommand(TerminalCommandId.CreateNewEditor);
 			const color = 'Cyan';
 			await terminal.runCommandWithValue(TerminalCommandIdWithValue.ChangeColor, color);
