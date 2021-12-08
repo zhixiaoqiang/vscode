@@ -71,30 +71,60 @@ declare module 'vscode' {
 		close(): Thenable<void>;
 	}
 
-	export namespace window {
+	export interface TabGroups {
 		/**
-		 * A list of all opened tabs
-		 * Ordered from left to right
+		 * A list of all tab groups in the window
 		 */
-		export const tabs: readonly Tab[];
+		all: TabGroup[];
+	}
+
+	export interface TabGroup {
+		/**
+		 * Whether or not the group is currently active
+		 */
+		isActive: boolean;
 
 		/**
-		 * The currently active tab
-		 * Undefined if no tabs are currently opened
+		 * The view column the group is currently located at
 		 */
-		export const activeTab: Tab | undefined;
+		viewColumn: ViewColumn;
+
+		/**
+		 * A list of tabs in the group
+		 */
+		tabs: Tab[];
+
+		/**
+		 * Closes the group. This makes the group object invalid and the group
+		 * should no longer be used for further actions.
+		 */
+		close(): Thenable<void>;
+
+		/**
+		 * Moves the group to the given view column
+		 * @param target The view column to move the group to.
+		 */
+		move(target: ViewColumn): Thenable<void>;
 
 		/**
 		 * An {@link Event} which fires when the array of {@link window.tabs tabs}
 		 * has changed.
 		 */
-		export const onDidChangeTabs: Event<readonly Tab[]>;
+		onDidChangeTabs: Event<readonly Tab[]>;
 
 		/**
 		 * An {@link Event} which fires when the {@link window.activeTab activeTab}
 		 * has changed.
 		 */
-		export const onDidChangeActiveTab: Event<Tab | undefined>;
+		onDidChangeActiveTab: Event<Tab | undefined>;
+	}
 
+	export namespace window {
+
+
+		/**
+		 * The groups within the window
+		 */
+		export const tabGroups: TabGroups;
 	}
 }
