@@ -19,21 +19,27 @@ export function itRepeat(n: number, description: string, callback: (this: Contex
 	}
 }
 
-export function beforeSuite(args: minimist.ParsedArgs, optionsTransform?: (opts: ApplicationOptions) => Promise<ApplicationOptions>) {
+export function installCommonTestHandlers(args: minimist.ParsedArgs, optionsTransform?: (opts: ApplicationOptions) => Promise<ApplicationOptions>) {
+	installCommonBeforeHandlers(args, optionsTransform);
+	installCommonAfterHandlers(args);
+}
+
+export function installCommonBeforeHandlers(args: minimist.ParsedArgs, optionsTransform?: (opts: ApplicationOptions) => Promise<ApplicationOptions>) {
 	before(async function () {
+		this.app = await startApp(args, this.defaultOptions, optionsTransform);
+	});
+
+	installCommonBeforeEachHandler();
+}
+
+export function installCommonBeforeEachHandler() {
+	beforeEach(async function () {
 		const testTitle = this.currentTest?.title;
-		const suiteTitle = this.currentTest?.parent?.title;
+		this.defaultOptions.logger.log('');
+		this.defaultOptions.logger.log(`>>> Test start: ${testTitle} <<<`);
+		this.defaultOptions.logger.log('');
 
-		this.app = await startApp(args, this.defaultOptions, async opts => {
-			opts.suiteTitle = suiteTitle;
-			opts.testTitle = testTitle;
-
-			if (optionsTransform) {
-				opts = await optionsTransform(opts);
-			}
-
-			return opts;
-		});
+		await this.app?.startTracing(testTitle);
 	});
 }
 
@@ -49,10 +55,6 @@ export async function startApp(args: minimist.ParsedArgs, options: ApplicationOp
 
 	await app.start();
 
-	if (args.log && options.testTitle) {
-		app.logger.log('*** Test start:', options.testTitle);
-	}
-
 	return app;
 }
 
@@ -66,7 +68,7 @@ export function getRandomUserDataDir(options: ApplicationOptions): string {
 	return options.userDataDir.concat(`-${userDataPathSuffix}`);
 }
 
-export function afterSuite(opts: minimist.ParsedArgs, appFn?: () => Application | undefined, joinFn?: () => Promise<unknown>) {
+export function installCommonAfterHandlers(opts: minimist.ParsedArgs, appFn?: () => Application | undefined, joinFn?: () => Promise<unknown>) {
 	after(async function () {
 		const app: Application = appFn?.() ?? this.app;
 
@@ -86,6 +88,10 @@ export function afterSuite(opts: minimist.ParsedArgs, appFn?: () => Application 
 		if (joinFn) {
 			await joinFn();
 		}
+	});
+
+	afterEach(async function () {
+		await this.app?.stopTracing(this.currentTest?.title, this.currentTest?.state === 'failed');
 	});
 }
 
