@@ -95,6 +95,11 @@ declare module 'vscode' {
 		tabs: Tab[];
 
 		/**
+		 * The active tab in the group
+		 */
+		activeTab: Tab | undefined;
+
+		/**
 		 * Closes the group. This makes the group object invalid and the group
 		 * should no longer be used for further actions.
 		 */

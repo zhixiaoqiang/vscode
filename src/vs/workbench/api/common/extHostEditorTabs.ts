@@ -27,8 +27,20 @@ export interface IEditorTab {
 
 export interface IExtHostEditorTabs extends IExtHostEditorTabsShape {
 	readonly _serviceBrand: undefined;
-	tabs: readonly IEditorTab[];
+	tabGroups: IExtHostEditorTabGroups;
+}
+
+export interface IExtHostEditorTabGroups {
+	all: IExtHostEditorTabGroup[];
+}
+
+export interface IExtHostEditorTabGroup {
+	isActive: boolean;
+	viewColumn: ViewColumn;
+	tabs: IEditorTab[];
 	activeTab: IEditorTab | undefined;
+	close(): Promise<void>;
+	move(target: ViewColumn): Promise<void>;
 	onDidChangeActiveTab: Event<IEditorTab | undefined>;
 	onDidChangeTabs: Event<IEditorTab[]>;
 }
@@ -58,6 +70,10 @@ export class ExtHostEditorTabs implements IExtHostEditorTabs {
 
 	get activeTab(): IEditorTab | undefined {
 		return this._activeTab;
+	}
+
+	get tabGroups(): IExtHostEditorTabGroups {
+		return { all: [] };
 	}
 
 	$acceptEditorTabs(tabs: IEditorTabDto[]): void {
