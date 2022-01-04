@@ -597,7 +597,6 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		xterm.raw.onKey(e => this._onKey(e.key, e.domEvent));
 		xterm.raw.onSelectionChange(async () => this._onSelectionChange());
 		xterm.raw.buffer.onBufferChange(() => this._refreshAltBufferContextKey());
-
 		this._processManager.onProcessData(e => this._onProcessData(e));
 		xterm.raw.onData(async data => {
 			await this._processManager.write(data);
@@ -639,6 +638,10 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		this._pathService.userHome().then(userHome => {
 			this._userHome = userHome.fsPath;
 		});
+		if (this.capabilities.includes(ProcessCapability.ShellIntegration)) {
+			//TODO: turn off polling for this case
+			xterm.commandTracker.onCwdChanged(cwd => this._cwd = cwd);
+		}
 		return xterm;
 	}
 
@@ -858,6 +861,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		this._processManager.onProcessReady((e) => {
 			this._linkManager?.setWidgetManager(this._widgetManager);
 			this._capabilities = e.capabilities;
+			this.xterm?.setCapabilites(this._capabilities);
 			this._workspaceFolder = path.basename(e.cwd.toString());
 		});
 
@@ -914,6 +918,54 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		// Focus here to ensure the terminal context key is set
 		this.xterm?.raw.focus();
 		this.xterm?.raw.selectAll();
+	}
+
+	async runRecent(type: 'command' | 'cwd'): Promise<void> {
+		const commands = this.xterm?.commandTracker.getCommands();
+		if (!commands || !this.xterm) {
+			return;
+		}
+		type Item = IQuickPickItem;
+		const items: Item[] = [];
+		if (type === 'command') {
+			for (const { command, timestamp, cwd, exitCode } of commands) {
+				// trim off /r
+				const label = command.substring(0, command.length - 1);
+				if (label.length === 0) {
+					continue;
+				}
+				const cwdDescription = cwd ? `cwd: ${cwd} ` : '';
+				const exitCodeDescription = exitCode ? `exitCode: ${exitCode} ` : '';
+				items.push({
+					label,
+					description: exitCodeDescription + cwdDescription,
+					detail: timestamp,
+					id: timestamp
+				});
+			}
+		} else {
+			const cwds = this.xterm.commandTracker.getCommands().map(c => c.cwd).filter(c => c !== undefined);
+			const map = new Map<string, number>();
+			if (!cwds) {
+				return;
+			}
+			for (const cwd of cwds) {
+				const entry = map.get(cwd!);
+				if (entry) {
+					map.set(cwd!, entry + 1);
+				} else {
+					map.set(cwd!, 1);
+				}
+			}
+			const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+			for (const entry of sorted) {
+				items.push({ label: entry[0] });
+			}
+		}
+		const result = await this._quickInputService.pick(items.reverse(), {});
+		if (result) {
+			this.sendText(type === 'cwd' ? `cd ${result.label}` : result.label, true);
+		}
 	}
 
 	notifyFindWidgetFocusChanged(isFocused: boolean): void {

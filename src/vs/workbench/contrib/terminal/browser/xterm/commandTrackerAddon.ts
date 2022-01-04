@@ -5,12 +5,14 @@
 
 import type { Terminal, IMarker, ITerminalAddon } from 'xterm';
 import { ICommandTracker } from 'vs/workbench/contrib/terminal/common/terminal';
-
+import { ShellIntegrationInfo, ShellIntegrationInteraction, TerminalCommand } from 'vs/workbench/contrib/terminal/browser/terminal';
+import { ProcessCapability } from 'vs/platform/terminal/common/terminal';
+import { Emitter } from 'vs/base/common/event';
+import { Disposable } from 'vs/base/common/lifecycle';
 /**
  * The minimum size of the prompt in which to assume the line is a command.
  */
 const MINIMUM_PROMPT_LENGTH = 2;
-
 enum Boundary {
 	Top,
 	Bottom
@@ -21,29 +23,104 @@ export const enum ScrollPosition {
 	Middle
 }
 
-export class CommandTrackerAddon implements ICommandTracker, ITerminalAddon {
+export class CommandTrackerAddon extends Disposable implements ICommandTracker, ITerminalAddon {
 	private _currentMarker: IMarker | Boundary = Boundary.Bottom;
 	private _selectionStart: IMarker | Boundary | null = null;
 	private _isDisposable: boolean = false;
 	private _terminal: Terminal | undefined;
 
+	private _capabilities: ProcessCapability[] | undefined = undefined;
+	private _dataIsCommand = false;
+	private _commands: TerminalCommand[] = [];
+	private _exitCode: number | undefined;
+	private _cwd: string | undefined;
+	private _currentCommand = '';
+
+	private readonly _onCwdChanged = this._register(new Emitter<string>());
+	readonly onCwdChanged = this._onCwdChanged.event;
+
 	activate(terminal: Terminal): void {
 		this._terminal = terminal;
-		terminal.onKey(e => this._onKey(e.key));
+		terminal.onIntegratedShellChange(e => {
+			if (!this._terminal) {
+				return;
+			}
+			if (this._terminal.buffer.active.cursorX >= MINIMUM_PROMPT_LENGTH) {
+				if (!this._shellIntegrationEnabled()) {
+					terminal.onKey(e => this._onKey(e.key));
+				} else if (e.type === ShellIntegrationInteraction.CommandFinished) {
+					this._terminal?.registerMarker(0);
+					this.clearMarker();
+				}
+			}
+			this._handleIntegratedShellChange(e);
+		});
+		terminal.onData(data => {
+			if (this._shellIntegrationEnabled() && this._dataIsCommand) {
+				this._currentCommand += data;
+			}
+		});
 	}
 
-	dispose(): void {
+	private _shellIntegrationEnabled(): boolean {
+		return this._capabilities?.includes(ProcessCapability.ShellIntegration) || false;
+	}
+
+	private _handleIntegratedShellChange(event: { type: string, value: string }): void {
+		if (!this._shellIntegrationEnabled()) {
+			return;
+		}
+		switch (event.type) {
+			case ShellIntegrationInfo.CurrentDir:
+				this._cwd = event.value;
+				this._onCwdChanged.fire(this._cwd);
+				break;
+			case ShellIntegrationInfo.RemoteHost:
+				break;
+			case ShellIntegrationInteraction.PromptStart:
+				break;
+			case ShellIntegrationInteraction.CommandStart:
+				this._dataIsCommand = true;
+				break;
+			case ShellIntegrationInteraction.CommandExecuted:
+				break;
+			case ShellIntegrationInteraction.CommandFinished:
+				this._exitCode = Number.parseInt(event.value);
+				if (!this._currentCommand.startsWith('\\') && this._currentCommand !== '') {
+					this._commands.push(
+						{
+							command: this._currentCommand,
+							timestamp: this._getCurrentTimestamp(),
+							cwd: this._cwd,
+							exitCode: this._exitCode
+						});
+				}
+				this._currentCommand = '';
+				break;
+			default:
+				return;
+		}
+	}
+
+	private _getCurrentTimestamp(): string {
+		const toTwoDigits = (v: number) => v < 10 ? `0${v}` : v;
+		const toThreeDigits = (v: number) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v;
+		const currentTime = new Date();
+		return `${currentTime.getFullYear()}-${toTwoDigits(currentTime.getMonth() + 1)}-${toTwoDigits(currentTime.getDate())} ${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`;
+	}
+
+	getCommands(): TerminalCommand[] {
+		return this._commands;
+	}
+
+	override dispose(): void {
 	}
 
 	private _onKey(key: string): void {
 		if (key === '\x0d') {
 			this._onEnter();
 		}
-
-		// Clear the current marker so successive focus/selection actions are performed from the
-		// bottom of the buffer
-		this._currentMarker = Boundary.Bottom;
-		this._selectionStart = null;
+		this.clearMarker();
 	}
 
 	private _onEnter(): void {
@@ -53,6 +130,19 @@ export class CommandTrackerAddon implements ICommandTracker, ITerminalAddon {
 		if (this._terminal.buffer.active.cursorX >= MINIMUM_PROMPT_LENGTH) {
 			this._terminal.registerMarker(0);
 		}
+	}
+
+	clearMarker(): void {
+		// Clear the current marker so successive focus/selection actions are performed from the
+		// bottom of the buffer
+		this._currentMarker = Boundary.Bottom;
+		this._selectionStart = null;
+	}
+
+	setCapabilites(capabilties: ProcessCapability[]): void {
+		// this is created before the onProcessReady event
+		// gets fired, which has the capabilities
+		this._capabilities = capabilties;
 	}
 
 	scrollToPreviousCommand(scrollPosition: ScrollPosition = ScrollPosition.Top, retainSelection: boolean = false): void {

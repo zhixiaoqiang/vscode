@@ -12,7 +12,7 @@ import { ConfigurationTarget, IConfigurationService } from 'vs/platform/configur
 import { TerminalConfigHelper } from 'vs/workbench/contrib/terminal/browser/terminalConfigHelper';
 import { DisposableStore } from 'vs/base/common/lifecycle';
 import { IEditorOptions } from 'vs/editor/common/config/editorOptions';
-import { TerminalLocation, TerminalSettingId } from 'vs/platform/terminal/common/terminal';
+import { ProcessCapability, TerminalLocation, TerminalSettingId } from 'vs/platform/terminal/common/terminal';
 import { ICommandTracker, ITerminalFont, TERMINAL_VIEW_ID } from 'vs/workbench/contrib/terminal/common/terminal';
 import { isSafari } from 'vs/base/browser/browser';
 import { IXtermTerminal } from 'vs/workbench/contrib/terminal/browser/terminal';
@@ -139,9 +139,14 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal {
 
 		// Load addons
 		this._updateUnicodeVersion();
-
 		this._commandTrackerAddon = new CommandTrackerAddon();
 		this.raw.loadAddon(this._commandTrackerAddon);
+	}
+
+	setCapabilites(capabilties: ProcessCapability[]): void {
+		// this is created before the onProcessReady event
+		// gets fired, which has the capabilities
+		this._commandTrackerAddon.setCapabilites(capabilties);
 	}
 
 	attachToElement(container: HTMLElement) {

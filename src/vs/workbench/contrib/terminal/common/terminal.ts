@@ -326,6 +326,13 @@ export interface ICommandTracker {
 	selectToNextCommand(): void;
 	selectToPreviousLine(): void;
 	selectToNextLine(): void;
+	clearMarker(): void;
+	getCommands(): { command: string, timestamp: string, cwd?: string, exitCode?: number }[];
+	/**
+	 * Fired when shell integration is enabled
+	 * and the command tracker receives an updated cwd
+	 */
+	onCwdChanged: Event<string>;
 }
 
 export interface INavigationMode {
@@ -497,6 +504,8 @@ export const enum TerminalCommandId {
 	SelectDefaultProfile = 'workbench.action.terminal.selectDefaultShell',
 	RunSelectedText = 'workbench.action.terminal.runSelectedText',
 	RunActiveFile = 'workbench.action.terminal.runActiveFile',
+	RerunCommand = 'workbench.action.terminal.rerunCommand',
+	GoToRecentDirectory = 'workbench.action.terminal.goToRecentDirectory',
 	SwitchTerminal = 'workbench.action.terminal.switchTerminal',
 	ScrollDownLine = 'workbench.action.terminal.scrollDown',
 	ScrollDownPage = 'workbench.action.terminal.scrollDownPage',

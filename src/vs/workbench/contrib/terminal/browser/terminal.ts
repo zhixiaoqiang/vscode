@@ -792,6 +792,12 @@ export interface ITerminalInstance {
 	 * Triggers a quick pick that displays links from the viewport of the active terminal.
 	 */
 	showLinkQuickpick(type: TerminalLinkProviderType): Promise<void>;
+
+	/**
+	 * Triggers a quick pick that displays recent commands or cwds. Selecting one will
+	 * re-run it in the active terminal.
+	 */
+	runRecent(type: 'command' | 'cwd'): Promise<void>;
 }
 
 export interface IXtermTerminal {
@@ -850,3 +856,25 @@ export const enum LinuxDistro {
 	Fedora = 2,
 	Ubuntu = 3,
 }
+
+
+export enum ShellIntegrationInteraction {
+	PromptStart = 'PROMPT_START',
+	CommandStart = 'COMMAND_START',
+	CommandExecuted = 'COMMAND_EXECUTED',
+	CommandFinished = 'COMMAND_FINISHED'
+}
+
+export interface TerminalCommand {
+	command: string;
+	timestamp: string;
+	cwd?: string;
+	exitCode?: number;
+}
+
+export enum ShellIntegrationInfo {
+	RemoteHost = 'RemoteHost',
+	CurrentDir = 'CurrentDir',
+}
+
+export interface IShellChangeEvent { type: ShellIntegrationInfo | ShellIntegrationInteraction, value: string }

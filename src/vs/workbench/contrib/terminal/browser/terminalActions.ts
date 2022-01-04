@@ -541,6 +541,34 @@ export function registerTerminalActions() {
 	registerAction2(class extends Action2 {
 		constructor() {
 			super({
+				id: TerminalCommandId.RerunCommand,
+				title: { value: localize('workbench.action.terminal.rerunCommand', "Re-run Command"), original: 'Re-run Command' },
+				f1: true,
+				category,
+				precondition: ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated)
+			});
+		}
+		async run(accessor: ServicesAccessor): Promise<void> {
+			await accessor.get(ITerminalService).activeInstance?.runRecent('command');
+		}
+	});
+	registerAction2(class extends Action2 {
+		constructor() {
+			super({
+				id: TerminalCommandId.GoToRecentDirectory,
+				title: { value: localize('workbench.action.terminal.goToRecentDirectory', "Go to Recent Directory"), original: 'Go to Recent Directory' },
+				f1: true,
+				category,
+				precondition: ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated)
+			});
+		}
+		async run(accessor: ServicesAccessor): Promise<void> {
+			await accessor.get(ITerminalService).activeInstance?.runRecent('cwd');
+		}
+	});
+	registerAction2(class extends Action2 {
+		constructor() {
+			super({
 				id: TerminalCommandId.ScrollDownLine,
 				title: { value: localize('workbench.action.terminal.scrollDown', "Scroll Down (Line)"), original: 'Scroll Down (Line)' },
 				f1: true,
