@@ -12,7 +12,6 @@ import { Disposable } from 'vs/base/common/lifecycle';
 /**
  * The minimum size of the prompt in which to assume the line is a command.
  */
-const MINIMUM_PROMPT_LENGTH = 2;
 enum Boundary {
 	Top,
 	Bottom
@@ -41,20 +40,6 @@ export class CommandTrackerAddon extends Disposable implements ICommandTracker, 
 
 	activate(terminal: Terminal): void {
 		this._terminal = terminal;
-		terminal.onIntegratedShellChange(e => {
-			if (!this._terminal) {
-				return;
-			}
-			if (this._terminal.buffer.active.cursorX >= MINIMUM_PROMPT_LENGTH) {
-				if (!this._shellIntegrationEnabled()) {
-					terminal.onKey(e => this._onKey(e.key));
-				} else if (e.type === ShellIntegrationInteraction.CommandFinished) {
-					this._terminal?.registerMarker(0);
-					this.clearMarker();
-				}
-			}
-			this._handleIntegratedShellChange(e);
-		});
 		terminal.onData(data => {
 			if (this._shellIntegrationEnabled() && this._dataIsCommand) {
 				this._currentCommand += data;
@@ -66,7 +51,7 @@ export class CommandTrackerAddon extends Disposable implements ICommandTracker, 
 		return this._capabilities?.includes(ProcessCapability.ShellIntegration) || false;
 	}
 
-	private _handleIntegratedShellChange(event: { type: string, value: string }): void {
+	handleIntegratedShellChange(event: { type: string, value: string }): void {
 		if (!this._shellIntegrationEnabled()) {
 			return;
 		}
@@ -114,22 +99,6 @@ export class CommandTrackerAddon extends Disposable implements ICommandTracker, 
 	}
 
 	override dispose(): void {
-	}
-
-	private _onKey(key: string): void {
-		if (key === '\x0d') {
-			this._onEnter();
-		}
-		this.clearMarker();
-	}
-
-	private _onEnter(): void {
-		if (!this._terminal) {
-			return;
-		}
-		if (this._terminal.buffer.active.cursorX >= MINIMUM_PROMPT_LENGTH) {
-			this._terminal.registerMarker(0);
-		}
 	}
 
 	clearMarker(): void {

@@ -129,7 +129,8 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal {
 				this._updateUnicodeVersion();
 			}
 		}));
-
+		this.raw.parser.registerOscHandler(133, (data => this._handleShellIntegration(data)));
+		this.raw.parser.registerOscHandler(1337, (data => this._updateCwd(data)));
 		this.add(this._themeService.onDidColorThemeChange(theme => this._updateTheme(theme)));
 		this.add(this._viewDescriptorService.onDidChangeLocation(({ views }) => {
 			if (views.some(v => v.id === TERMINAL_VIEW_ID)) {
@@ -488,4 +489,68 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal {
 			this.raw.unicode.activeVersion = this._configHelper.config.unicodeVersion;
 		}
 	}
+
+	private _updateCwd(data: string): boolean {
+		let value: string | undefined;
+		const [type, info] = data.split('=');
+		switch (type) {
+			case ShellIntegrationInfo.CurrentDir:
+				value = info;
+				break;
+			default:
+				return false;
+		}
+		if (!value) {
+			return false;
+		}
+		return true;
+	}
+
+	private _handleShellIntegration(data: string): boolean {
+		let type: ShellIntegrationInteraction | undefined;
+		const [command, exitCode] = data.split(';');
+		switch (command) {
+			case 'A':
+				type = ShellIntegrationInteraction.PromptStart;
+				break;
+			case 'B':
+				type = ShellIntegrationInteraction.CommandStart;
+				break;
+			case 'C':
+				type = ShellIntegrationInteraction.CommandExecuted;
+				break;
+			case 'D':
+				type = ShellIntegrationInteraction.CommandFinished;
+				if (this.raw.buffer.active.cursorX >= 2) {
+					this.raw?.registerMarker(0);
+					this.commandTracker.clearMarker();
+				}
+				break;
+			case 'E':
+				type = ShellIntegrationInteraction.ENABLED;
+				this.setCapabilites([ProcessCapability.ShellIntegration]);
+			default:
+				return false;
+		}
+		const value = exitCode || type;
+		if (!value) {
+			return false;
+		}
+		this._commandTrackerAddon.handleIntegratedShellChange({ type, value });
+		return true;
+	}
+
 }
+enum ShellIntegrationInteraction {
+	PromptStart = 'PROMPT_START',
+	CommandStart = 'COMMAND_START',
+	CommandExecuted = 'COMMAND_EXECUTED',
+	CommandFinished = 'COMMAND_FINISHED',
+	ENABLED = 'ENABLED'
+}
+
+enum ShellIntegrationInfo {
+	CurrentDir = 'CurrentDir'
+}
+
+export interface IShellChangeEvent { type: ShellIntegrationInfo | ShellIntegrationInteraction, value: string }
