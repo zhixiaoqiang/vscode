@@ -22,7 +22,7 @@ export const enum ScrollPosition {
 	Middle
 }
 
-export class CommandTrackerAddon extends Disposable implements ICommandTracker, ITerminalAddon {
+export class BasicCommandTrackerAddon extends Disposable implements ICommandTracker, ITerminalAddon {
 	private _currentMarker: IMarker | Boundary = Boundary.Bottom;
 	private _selectionStart: IMarker | Boundary | null = null;
 	private _isDisposable: boolean = false;

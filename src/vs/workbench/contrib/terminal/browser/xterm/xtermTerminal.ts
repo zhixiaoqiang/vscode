@@ -20,7 +20,7 @@ import { ILogService } from 'vs/platform/log/common/log';
 import { IStorageService, StorageScope, StorageTarget } from 'vs/platform/storage/common/storage';
 import { TerminalStorageKeys } from 'vs/workbench/contrib/terminal/common/terminalStorageKeys';
 import { INotificationService, IPromptChoice, Severity } from 'vs/platform/notification/common/notification';
-import { CommandTrackerAddon } from 'vs/workbench/contrib/terminal/browser/xterm/commandTrackerAddon';
+import { BasicCommandTrackerAddon } from 'vs/workbench/contrib/terminal/browser/xterm/commandTrackerAddon';
 import { localize } from 'vs/nls';
 import { IColorTheme, IThemeService } from 'vs/platform/theme/common/themeService';
 import { IViewDescriptorService, ViewContainerLocation } from 'vs/workbench/common/views';
@@ -51,7 +51,7 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal {
 	private _container?: HTMLElement;
 
 	// Always on addons
-	private _commandTrackerAddon: CommandTrackerAddon;
+	private _commandTrackerAddon: BasicCommandTrackerAddon;
 
 	// Optional addons
 	private _searchAddon?: SearchAddonType;
@@ -140,7 +140,7 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal {
 
 		// Load addons
 		this._updateUnicodeVersion();
-		this._commandTrackerAddon = new CommandTrackerAddon();
+		this._commandTrackerAddon = new BasicCommandTrackerAddon();
 		this.raw.loadAddon(this._commandTrackerAddon);
 	}
 
@@ -503,6 +503,7 @@ export class XtermTerminal extends DisposableStore implements IXtermTerminal {
 		if (!value) {
 			return false;
 		}
+		this._commandTrackerAddon.handleIntegratedShellChange({ type, value });
 		return true;
 	}
 
@@ -546,7 +547,8 @@ enum ShellIntegrationInteraction {
 	CommandStart = 'COMMAND_START',
 	CommandExecuted = 'COMMAND_EXECUTED',
 	CommandFinished = 'COMMAND_FINISHED',
-	ENABLED = 'ENABLED'
+	ENABLED = 'ENABLED',
+
 }
 
 enum ShellIntegrationInfo {

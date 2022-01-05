@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { Terminal } from 'xterm';
-import { CommandTrackerAddon } from 'vs/workbench/contrib/terminal/browser/xterm/commandTrackerAddon';
+import { BasicCommandTrackerAddon } from 'vs/workbench/contrib/terminal/browser/xterm/commandTrackerAddon';
 import { isWindows } from 'vs/base/common/platform';
 import { IXtermCore } from 'vs/workbench/contrib/terminal/browser/xterm-private';
 import { timeout } from 'vs/base/common/async';
@@ -30,7 +30,7 @@ async function writeP(terminal: TestTerminal, data: string): Promise<void> {
 
 suite('Workbench - TerminalCommandTracker', function () {
 	let xterm: TestTerminal;
-	let commandTracker: CommandTrackerAddon;
+	let commandTracker: BasicCommandTrackerAddon;
 
 	setup(async function () {
 		// These tests are flaky on GH actions as sometimes they are particularly slow and timeout
@@ -48,7 +48,7 @@ suite('Workbench - TerminalCommandTracker', function () {
 			data += `${i}\n`;
 		}
 		await writeP(xterm, data);
-		commandTracker = new CommandTrackerAddon();
+		commandTracker = new BasicCommandTrackerAddon();
 		xterm.loadAddon(commandTracker);
 	});
 

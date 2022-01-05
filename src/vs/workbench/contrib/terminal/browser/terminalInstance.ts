@@ -638,10 +638,11 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		this._pathService.userHome().then(userHome => {
 			this._userHome = userHome.fsPath;
 		});
-		if (this.capabilities.includes(ProcessCapability.ShellIntegration)) {
-			//TODO: turn off polling for this case
-			xterm.commandTracker.onCwdChanged(cwd => this._cwd = cwd);
-		}
+		//TODO: turn off polling for this case
+		xterm.commandTracker.onCwdChanged(cwd => {
+			this._cwd = cwd;
+			this._updateProcessCwd();
+		});
 		return xterm;
 	}
 
@@ -944,7 +945,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 				});
 			}
 		} else {
-			const cwds = this.xterm.commandTracker.getCommands().map(c => c.cwd).filter(c => c !== undefined);
+			const cwds = this.xterm.commandTracker.getCommands().map(c => c.cwd).filter(c => c !== undefined && c !== this.cwd);
 			const map = new Map<string, number>();
 			if (!cwds) {
 				return;

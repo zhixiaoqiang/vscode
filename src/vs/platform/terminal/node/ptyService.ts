@@ -24,6 +24,8 @@ import { TerminalProcess } from 'vs/platform/terminal/node/terminalProcess';
 import { localize } from 'vs/nls';
 import { ignoreProcessNames } from 'vs/platform/terminal/node/childProcessMonitor';
 import { TerminalAutoResponder } from 'vs/platform/terminal/common/terminalAutoResponder';
+// import { BasicCommandTrackerAddon } from 'vs/workbench/contrib/terminal/browser/xterm/commandTrackerAddon';
+// import { ICommandTracker } from 'vs/workbench/contrib/terminal/common/terminal';
 
 type WorkspaceId = string;
 
@@ -721,6 +723,10 @@ export class PersistentTerminalProcess extends Disposable {
 	}
 }
 
+// class IntegratedCommandTrackerAddon extends BasicCommandTrackerAddon implements ICommandTracker, ITerminalAddon {
+
+// }
+
 class XtermSerializer implements ITerminalSerializer {
 	private _xterm: XtermTerminal;
 	private _unicodeAddon?: XtermUnicode11Addon;
@@ -733,6 +739,7 @@ class XtermSerializer implements ITerminalSerializer {
 		reviveBuffer: string | undefined
 	) {
 		this._xterm = new XtermTerminal({ cols, rows, scrollback });
+		// this._xterm.loadAddon(new IntegratedCommandTrackerAddon());
 		if (reviveBuffer) {
 			this._xterm.writeln(reviveBuffer);
 		}
@@ -818,6 +825,8 @@ function printTime(ms: number): string {
 	const _ms = ms ? `${ms}ms` : ``;
 	return `${_h}${_m}${_s}${_ms}`;
 }
+
+
 
 export interface ITerminalSerializer {
 	handleData(data: string): void;
