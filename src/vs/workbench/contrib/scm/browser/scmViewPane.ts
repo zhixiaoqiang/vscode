@@ -10,7 +10,7 @@ import { IDisposable, Disposable, DisposableStore, combinedDisposable, dispose, 
 import { ViewPane, IViewPaneOptions, ViewAction } from 'vs/workbench/browser/parts/views/viewPane';
 import { append, $, Dimension, asCSSUrl, trackFocus, clearNode } from 'vs/base/browser/dom';
 import { IListVirtualDelegate, IIdentityProvider } from 'vs/base/browser/ui/list/list';
-import { ISCMResourceGroup, ISCMResource, InputValidationType, ISCMRepository, ISCMInput, IInputValidation, ISCMViewService, ISCMViewVisibleRepositoryChangeEvent, ISCMService, SCMInputChangeReason, VIEW_PANE_ID, ISCMActionButton } from 'vs/workbench/contrib/scm/common/scm';
+import { ISCMResourceGroup, ISCMResource, InputValidationType, ISCMRepository, ISCMInput, IInputValidation, ISCMViewService, ISCMViewVisibleRepositoryChangeEvent, ISCMService, SCMInputChangeReason, VIEW_PANE_ID, ISCMActionButton, ISCMActionButtonDescriptor } from 'vs/workbench/contrib/scm/common/scm';
 import { ResourceLabels, IResourceLabel, IFileLabelOptions } from 'vs/workbench/browser/labels';
 import { CountBadge } from 'vs/base/browser/ui/countBadge/countBadge';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
@@ -82,8 +82,7 @@ import { API_OPEN_DIFF_EDITOR_COMMAND_ID, API_OPEN_EDITOR_COMMAND_ID } from 'vs/
 import { createAndFillInContextMenuActions } from 'vs/platform/actions/browser/menuEntryActionViewItem';
 import { IWorkspaceContextService } from 'vs/platform/workspace/common/workspace';
 import { MarkdownRenderer } from 'vs/editor/browser/core/markdownRenderer';
-import { Button } from 'vs/base/browser/ui/button/button';
-import { Command } from 'vs/editor/common/modes';
+import { ButtonWithDescription } from 'vs/base/browser/ui/button/button';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 
 type TreeElement = ISCMRepository | ISCMInput | ISCMActionButton | ISCMResourceGroup | IResourceNode<ISCMResource, ISCMResourceGroup> | ISCMResource;
@@ -829,7 +828,7 @@ export class SCMAccessibilityProvider implements IListAccessibilityProvider<Tree
 		} else if (isSCMInput(element)) {
 			return localize('input', "Source Control Input");
 		} else if (isSCMActionButton(element)) {
-			return element.button?.title ?? '';
+			return element.button?.command.title ?? '';
 		} else if (isSCMResourceGroup(element)) {
 			return element.label;
 		} else {
@@ -2446,7 +2445,7 @@ registerThemingParticipant((theme, collector) => {
 });
 
 export class ScmActionButton implements IDisposable {
-	private button: Button | undefined;
+	private button: ButtonWithDescription | undefined;
 	private readonly disposables = new MutableDisposable<DisposableStore>();
 
 	constructor(
@@ -2462,18 +2461,20 @@ export class ScmActionButton implements IDisposable {
 	}
 
 
-	setButton(button: Command | undefined): void {
+	setButton(button: ISCMActionButtonDescriptor | undefined): void {
 		// Clear old button
 		this.clear();
 		if (!button) {
 			return;
 		}
 
-		this.button = new Button(this.container, { title: button.tooltip, supportIcons: true });
-		this.button.label = button.title;
+		console.log(button);
+		this.button = new ButtonWithDescription(this.container, { title: button.command.tooltip, supportIcons: true });
+		this.button.label = button.command.title;
+		this.button.description = button.description ?? '$(sync) Sync Changes 10$(arrow-down) 5$(arrow-up)';
 		this.button.onDidClick(async () => {
 			try {
-				await this.commandService.executeCommand(button!.id, ...(button!.arguments || []));
+				await this.commandService.executeCommand(button!.command.id, ...(button!.command.arguments || []));
 			} catch (ex) {
 				this.notificationService.error(ex);
 			}
