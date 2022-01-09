@@ -82,7 +82,7 @@ import { API_OPEN_DIFF_EDITOR_COMMAND_ID, API_OPEN_EDITOR_COMMAND_ID } from 'vs/
 import { createAndFillInContextMenuActions } from 'vs/platform/actions/browser/menuEntryActionViewItem';
 import { IWorkspaceContextService } from 'vs/platform/workspace/common/workspace';
 import { MarkdownRenderer } from 'vs/editor/browser/core/markdownRenderer';
-import { ButtonWithDescription } from 'vs/base/browser/ui/button/button';
+import { Button, ButtonWithDescription } from 'vs/base/browser/ui/button/button';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 
 type TreeElement = ISCMRepository | ISCMInput | ISCMActionButton | ISCMResourceGroup | IResourceNode<ISCMResource, ISCMResourceGroup> | ISCMResource;
@@ -2445,7 +2445,7 @@ registerThemingParticipant((theme, collector) => {
 });
 
 export class ScmActionButton implements IDisposable {
-	private button: ButtonWithDescription | undefined;
+	private button: Button | ButtonWithDescription | undefined;
 	private readonly disposables = new MutableDisposable<DisposableStore>();
 
 	constructor(
@@ -2460,7 +2460,6 @@ export class ScmActionButton implements IDisposable {
 		this.disposables?.dispose();
 	}
 
-
 	setButton(button: ISCMActionButtonDescriptor | undefined): void {
 		// Clear old button
 		this.clear();
@@ -2468,13 +2467,19 @@ export class ScmActionButton implements IDisposable {
 			return;
 		}
 
-		console.log(button);
-		this.button = new ButtonWithDescription(this.container, { title: button.command.tooltip, supportIcons: true });
+		if (button.description) {
+			// ButtonWithDescription
+			this.button = new ButtonWithDescription(this.container, { supportIcons: true });
+			(this.button as ButtonWithDescription).description = button.description;
+		} else {
+			// Button
+			this.button = new Button(this.container, { supportIcons: true });
+		}
+
 		this.button.label = button.command.title;
-		this.button.description = button.description ?? '$(sync) Sync Changes 10$(arrow-down) 5$(arrow-up)';
 		this.button.onDidClick(async () => {
 			try {
-				await this.commandService.executeCommand(button!.command.id, ...(button!.command.arguments || []));
+				await this.commandService.executeCommand(button.command.id, ...(button.command.arguments || []));
 			} catch (ex) {
 				this.notificationService.error(ex);
 			}
