@@ -94,7 +94,7 @@ interface ISCMLayout {
 }
 
 interface ActionButtonTemplate {
-	readonly actionButton: ScmActionButton;
+	readonly actionButton: SCMActionButton;
 	disposable: IDisposable;
 	readonly templateDisposable: IDisposable;
 }
@@ -116,7 +116,7 @@ class ActionButtonRenderer implements ICompressibleTreeRenderer<ISCMActionButton
 		container.parentElement!.parentElement!.classList.add('force-no-hover');
 
 		const buttonContainer = append(container, $('.button-container'));
-		const actionButton = new ScmActionButton(buttonContainer, this.commandService, this.themeService, this.notificationService);
+		const actionButton = new SCMActionButton(buttonContainer, this.commandService, this.themeService, this.notificationService);
 
 		return { actionButton, disposable: Disposable.None, templateDisposable: actionButton };
 	}
@@ -2444,7 +2444,7 @@ registerThemingParticipant((theme, collector) => {
 	}
 });
 
-export class ScmActionButton implements IDisposable {
+export class SCMActionButton implements IDisposable {
 	private button: Button | ButtonWithDescription | undefined;
 	private readonly disposables = new MutableDisposable<DisposableStore>();
 
