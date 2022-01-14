@@ -942,7 +942,7 @@ function parseConnectionToken(args: ServerParsedArgs): { connectionToken: string
 
 	let connectionToken = args['connection-token'];
 	const connectionTokenFile = args['connection-token-file'];
-	const compatibility = args['compatibility'] === '1.63';
+	const runningIn164 = args['compatibility'] === '1.64';
 
 	if (args['without-connection-token']) {
 		if (connectionToken || connectionTokenFile) {
@@ -977,11 +977,11 @@ function parseConnectionToken(args: ServerParsedArgs): { connectionToken: string
 		} else if (connectionToken === undefined) {
 			connectionToken = generateUuid();
 			console.log(`Connection token: ${connectionToken}`);
-			if (compatibility) {
-				console.log(`Connection token or will made mandatory in the next release. To run without connection token, use '--without-connection-token'.`);
+			if (!runningIn164) {
+				console.log(`Connection token will made mandatory in the next release. To run without connection token, use '--without-connection-token'.`);
 			}
 		}
-		return { connectionToken, connectionTokenIsMandatory: !compatibility };
+		return { connectionToken, connectionTokenIsMandatory: runningIn164 };
 	}
 }
 

@@ -36,7 +36,7 @@ goto loop1
 
 :after_loop
 
-call "%NODE%" %INSPECT% "out\vs\server\main.js" %RESTVAR%
+call "%NODE%" %INSPECT% "out\vs\server\main.js" --compatibility=1.64 %RESTVAR%
 
 popd
 
