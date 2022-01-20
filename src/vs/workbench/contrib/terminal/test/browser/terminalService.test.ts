@@ -83,6 +83,22 @@ suite('Workbench - TerminalService', () => {
 					dispose: () => r()
 				} as Partial<ITerminalInstance> as any);
 			});
+			await new Promise<void>(r => {
+				terminalService.safeDisposeTerminal({
+					target: TerminalLocation.Panel,
+					hasChildProcesses: true,
+					onExit: onExitEmitter.event,
+					dispose: () => r()
+				} as Partial<ITerminalInstance> as any);
+			});
+			await new Promise<void>(r => {
+				terminalService.safeDisposeTerminal({
+					target: TerminalLocation.Panel,
+					hasChildProcesses: true,
+					onExit: onExitEmitter.event,
+					dispose: () => r()
+				} as Partial<ITerminalInstance> as any);
+			});
 		});
 		test('should not show prompt when any terminal editor is closed (handled by editor itself)', async () => {
 			setConfirmOnKill(configurationService, 'editor');
