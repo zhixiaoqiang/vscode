@@ -1062,8 +1062,13 @@ export interface SCMProviderFeatures {
 	count?: number;
 	commitTemplate?: string;
 	acceptInputCommand?: modes.Command;
-	actionButton?: { command: ICommandDto, description?: string } | null;
+	actionButton?: SCMActionButtonDto | null;
 	statusBarCommands?: ICommandDto[];
+}
+
+export interface SCMActionButtonDto {
+	command: ICommandDto;
+	description?: string;
 }
 
 export interface SCMGroupFeatures {
