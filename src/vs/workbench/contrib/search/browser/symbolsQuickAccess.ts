@@ -9,7 +9,7 @@ import { CancellationToken } from 'vs/base/common/cancellation';
 import { DisposableStore } from 'vs/base/common/lifecycle';
 import { ThrottledDelayer } from 'vs/base/common/async';
 import { getWorkspaceSymbols, IWorkspaceSymbol, IWorkspaceSymbolProvider } from 'vs/workbench/contrib/search/common/search';
-import { SymbolKinds, SymbolTag, SymbolKind } from 'vs/editor/common/modes';
+import { SymbolKinds, SymbolTag, SymbolKind } from 'vs/editor/common/languages';
 import { ILabelService } from 'vs/platform/label/common/label';
 import { Schemas } from 'vs/base/common/network';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
@@ -19,7 +19,7 @@ import { IConfigurationService } from 'vs/platform/configuration/common/configur
 import { IWorkbenchEditorConfiguration } from 'vs/workbench/common/editor';
 import { IKeyMods, IQuickPickItemWithResource } from 'vs/platform/quickinput/common/quickInput';
 import { ICodeEditorService } from 'vs/editor/browser/services/codeEditorService';
-import { getSelectionSearchString } from 'vs/editor/contrib/find/findController';
+import { getSelectionSearchString } from 'vs/editor/contrib/find/browser/findController';
 import { withNullAsUndefined } from 'vs/base/common/types';
 import { prepareQuery, IPreparedQuery, scoreFuzzy2, pieceToQuery } from 'vs/base/common/fuzzyScorer';
 import { IMatch } from 'vs/base/common/filters';

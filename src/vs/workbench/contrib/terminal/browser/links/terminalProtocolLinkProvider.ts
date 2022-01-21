@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { Terminal, IViewportRange, IBufferLine } from 'xterm';
-import { ILinkComputerTarget, LinkComputer } from 'vs/editor/common/modes/linkComputer';
+import { ILinkComputerTarget, LinkComputer } from 'vs/editor/common/languages/linkComputer';
 import { getXtermLineContent, convertLinkRangeToBuffer } from 'vs/workbench/contrib/terminal/browser/links/terminalLinkHelpers';
 import { TerminalLink, OPEN_FILE_LABEL, FOLDER_IN_WORKSPACE_LABEL, FOLDER_NOT_IN_WORKSPACE_LABEL } from 'vs/workbench/contrib/terminal/browser/links/terminalLink';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
@@ -19,7 +19,7 @@ import { Schemas } from 'vs/base/common/network';
 
 export class TerminalProtocolLinkProvider extends TerminalBaseLinkProvider {
 	private _linkComputerTarget: ILinkComputerTarget | undefined;
-
+	static id: string = 'TerminalProtocolLinkProvider';
 	constructor(
 		private readonly _xterm: Terminal,
 		private readonly _activateCallback: (event: MouseEvent | undefined, uri: string) => void,
@@ -49,6 +49,11 @@ export class TerminalProtocolLinkProvider extends TerminalBaseLinkProvider {
 		}
 
 		while (endLine < this._xterm.buffer.active.length && this._xterm.buffer.active.getLine(endLine + 1)?.isWrapped) {
+			if (endLine - startLine > this._xterm.rows) {
+				// This keeps the search space reasonable to prevent issues
+				// like #139593 from happening
+				break;
+			}
 			lines.push(this._xterm.buffer.active.getLine(endLine + 1)!);
 			endLine++;
 		}

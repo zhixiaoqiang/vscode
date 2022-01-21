@@ -14,7 +14,7 @@ import { CodeEditorWidget } from 'vs/editor/browser/widget/codeEditorWidget';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { IResolvedTextEditorModel, ITextModelService } from 'vs/editor/common/services/resolverService';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
-import { IEditorWorkerService } from 'vs/editor/common/services/editorWorkerService';
+import { IEditorWorkerService } from 'vs/editor/common/services/editorWorker';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { URI } from 'vs/base/common/uri';
 import { ISCMService, ISCMRepository, ISCMProvider } from 'vs/workbench/contrib/scm/common/scm';
@@ -24,7 +24,7 @@ import { registerColor, transparent } from 'vs/platform/theme/common/colorRegist
 import { Color, RGBA } from 'vs/base/common/color';
 import { ICodeEditor, IEditorMouseEvent, MouseTargetType } from 'vs/editor/browser/editorBrowser';
 import { registerEditorAction, registerEditorContribution, ServicesAccessor, EditorAction } from 'vs/editor/browser/editorExtensions';
-import { PeekViewWidget, getOuterEditor, peekViewBorder, peekViewTitleBackground, peekViewTitleForeground, peekViewTitleInfoForeground } from 'vs/editor/contrib/peekView/peekView';
+import { PeekViewWidget, getOuterEditor, peekViewBorder, peekViewTitleBackground, peekViewTitleForeground, peekViewTitleInfoForeground } from 'vs/editor/contrib/peekView/browser/peekView';
 import { IContextKeyService, IContextKey, ContextKeyExpr, RawContextKey } from 'vs/platform/contextkey/common/contextkey';
 import { EditorContextKeys } from 'vs/editor/common/editorContextKeys';
 import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
@@ -42,7 +42,6 @@ import { createAndFillInActionBarActions } from 'vs/platform/actions/browser/men
 import { IChange, IEditorModel, ScrollType, IEditorContribution, IDiffEditorModel } from 'vs/editor/common/editorCommon';
 import { OverviewRulerLane, ITextModel, IModelDecorationOptions, MinimapPosition } from 'vs/editor/common/model';
 import { sortedDiff } from 'vs/base/common/arrays';
-import { IMarginData } from 'vs/editor/browser/controller/mouseTarget';
 import { ICodeEditorService } from 'vs/editor/browser/services/codeEditorService';
 import { ISplice } from 'vs/base/common/sequence';
 import { createStyleSheet } from 'vs/base/browser/dom';
@@ -766,7 +765,7 @@ export class DirtyDiffController extends Disposable implements IEditorContributi
 			return;
 		}
 
-		const data = e.target.detail as IMarginData;
+		const data = e.target.detail;
 		const offsetLeftInGutter = (e.target.element as HTMLElement).offsetLeft;
 		const gutterOffsetX = data.offsetX - offsetLeftInGutter;
 

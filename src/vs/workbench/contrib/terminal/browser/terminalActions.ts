@@ -54,7 +54,7 @@ import { getIconId, getColorClass, getUriClasses } from 'vs/workbench/contrib/te
 export const switchTerminalActionViewItemSeparator = '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500';
 export const switchTerminalShowTabsTitle = localize('showTerminalTabs', "Show Tabs");
 
-async function getCwdForSplit(configHelper: ITerminalConfigHelper, instance: ITerminalInstance, folders?: IWorkspaceFolder[], commandService?: ICommandService): Promise<string | URI | undefined> {
+export async function getCwdForSplit(configHelper: ITerminalConfigHelper, instance: ITerminalInstance, folders?: IWorkspaceFolder[], commandService?: ICommandService): Promise<string | URI | undefined> {
 	switch (configHelper.config.splitCwd) {
 		case 'workspaceRoot':
 			if (folders !== undefined && commandService !== undefined) {
@@ -298,6 +298,34 @@ export function registerTerminalActions() {
 			const terminalGroupService = accessor.get(ITerminalGroupService);
 			terminalGroupService.activeGroup?.focusNextPane();
 			await terminalGroupService.showPanel(true);
+		}
+	});
+	registerAction2(class extends Action2 {
+		constructor() {
+			super({
+				id: TerminalCommandId.RunRecentCommand,
+				title: { value: localize('workbench.action.terminal.runRecentCommand', "Run Recent Command"), original: 'Run Recent Command' },
+				f1: true,
+				category,
+				precondition: ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated)
+			});
+		}
+		async run(accessor: ServicesAccessor): Promise<void> {
+			await accessor.get(ITerminalService).activeInstance?.runRecent('command');
+		}
+	});
+	registerAction2(class extends Action2 {
+		constructor() {
+			super({
+				id: TerminalCommandId.GoToRecentDirectory,
+				title: { value: localize('workbench.action.terminal.goToRecentDirectory', "Go to Recent Directory"), original: 'Go to Recent Directory' },
+				f1: true,
+				category,
+				precondition: ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated)
+			});
+		}
+		async run(accessor: ServicesAccessor): Promise<void> {
+			await accessor.get(ITerminalService).activeInstance?.runRecent('cwd');
 		}
 	});
 	registerAction2(class extends Action2 {
@@ -1357,7 +1385,7 @@ export function registerTerminalActions() {
 					},
 					{
 						primary: KeyMod.Shift | KeyCode.Enter,
-						when: TerminalContextKeys.findFocus,
+						when: TerminalContextKeys.findInputFocus,
 						weight: KeybindingWeight.WorkbenchContrib
 					}
 				],
@@ -1384,7 +1412,7 @@ export function registerTerminalActions() {
 					},
 					{
 						primary: KeyCode.Enter,
-						when: TerminalContextKeys.findFocus,
+						when: TerminalContextKeys.findInputFocus,
 						weight: KeybindingWeight.WorkbenchContrib
 					}
 				],
@@ -1525,8 +1553,7 @@ export function registerTerminalActions() {
 				for (const t of instances) {
 					terminalService.setActiveInstance(t);
 					terminalService.doWithActiveInstance(async instance => {
-						const cwd = await getCwdForSplit(terminalService.configHelper, instance);
-						await terminalService.createTerminal({ location: { parentTerminal: instance }, cwd });
+						await terminalService.createTerminal({ location: { parentTerminal: instance } });
 						await terminalGroupService.showPanel(true);
 					});
 				}
@@ -1652,8 +1679,7 @@ export function registerTerminalActions() {
 			const terminalService = accessor.get(ITerminalService);
 			const terminalGroupService = accessor.get(ITerminalGroupService);
 			await terminalService.doWithActiveInstance(async t => {
-				const cwd = await getCwdForSplit(terminalService.configHelper, t);
-				const instance = await terminalService.createTerminal({ location: { parentTerminal: t }, cwd });
+				const instance = await terminalService.createTerminal({ location: { parentTerminal: t } });
 				if (instance?.target !== TerminalLocation.Editor) {
 					await terminalGroupService.showPanel(true);
 				}
@@ -1718,12 +1744,8 @@ export function registerTerminalActions() {
 			const configurationService = accessor.get(IConfigurationService);
 			const folders = workspaceContextService.getWorkspace().folders;
 			if (eventOrOptions && eventOrOptions instanceof MouseEvent && (eventOrOptions.altKey || eventOrOptions.ctrlKey)) {
-				const activeInstance = terminalService.activeInstance;
-				if (activeInstance) {
-					const cwd = await getCwdForSplit(terminalService.configHelper, activeInstance);
-					await terminalService.createTerminal({ location: { parentTerminal: activeInstance }, cwd });
-					return;
-				}
+				await terminalService.createTerminal({ location: { splitActiveTerminal: true } });
+				return;
 			}
 
 			if (terminalService.isProcessSupportRegistered) {
@@ -1892,6 +1914,52 @@ export function registerTerminalActions() {
 			accessor.get(ITerminalService).doWithActiveInstance(t => t.clearBuffer());
 		}
 	});
+
+	registerAction2(class extends Action2 {
+		constructor() {
+			super({
+				id: TerminalCommandId.OpenDetectedLink,
+				title: { value: localize('workbench.action.terminal.OpenDetectedLink', "Open Detected Link"), original: 'Open Detected Link' },
+				f1: true,
+				category,
+				precondition: ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated),
+			});
+		}
+		run(accessor: ServicesAccessor) {
+			accessor.get(ITerminalService).doWithActiveInstance(t => t.showLinkQuickpick());
+		}
+	});
+
+	registerAction2(class extends Action2 {
+		constructor() {
+			super({
+				id: TerminalCommandId.OpenWebLink,
+				title: { value: localize('workbench.action.terminal.openWebLink', "Open Most Recent Web Link"), original: 'Open Most Recent Web Link' },
+				f1: true,
+				category,
+				precondition: ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated),
+			});
+		}
+		run(accessor: ServicesAccessor) {
+			accessor.get(ITerminalService).doWithActiveInstance(t => t.openRecentLink('web'));
+		}
+	});
+
+	registerAction2(class extends Action2 {
+		constructor() {
+			super({
+				id: TerminalCommandId.OpenFileLink,
+				title: { value: localize('workbench.action.terminal.openFileLink', "Open Most Recent File Link"), original: 'Open Most Recent File Link' },
+				f1: true,
+				category,
+				precondition: ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated),
+			});
+		}
+		run(accessor: ServicesAccessor) {
+			accessor.get(ITerminalService).doWithActiveInstance(t => t.openRecentLink('file'));
+		}
+	});
+
 	registerAction2(class extends Action2 {
 		constructor() {
 			super({
@@ -2224,8 +2292,7 @@ export function refreshTerminalActions(detectedProfiles: ITerminalProfile[]) {
 			if (event && (event.altKey || event.ctrlKey)) {
 				const parentTerminal = terminalService.activeInstance;
 				if (parentTerminal) {
-					cwd = await getCwdForSplit(terminalService.configHelper, parentTerminal);
-					await terminalService.createTerminal({ location: { parentTerminal }, config: options?.config, cwd });
+					await terminalService.createTerminal({ location: { parentTerminal }, config: options?.config });
 					return;
 				}
 			}

@@ -5,11 +5,10 @@
 
 import * as nls from 'vs/nls';
 import { registerEditorAction, ServicesAccessor, EditorAction } from 'vs/editor/browser/editorExtensions';
-import { ILanguageService } from 'vs/editor/common/services/languageService';
-import { NULL_MODE_ID } from 'vs/editor/common/modes/nullMode';
+import { ILanguageService } from 'vs/editor/common/services/language';
 import { ICommandService, CommandsRegistry } from 'vs/platform/commands/common/commands';
 import { ISnippetsService } from 'vs/workbench/contrib/snippets/browser/snippets.contribution';
-import { SnippetController2 } from 'vs/editor/contrib/snippet/snippetController2';
+import { SnippetController2 } from 'vs/editor/contrib/snippet/browser/snippetController2';
 import { EditorContextKeys } from 'vs/editor/common/editorContextKeys';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
 import { Snippet, SnippetSource } from 'vs/workbench/contrib/snippets/browser/snippetsFile';
@@ -93,7 +92,7 @@ class InsertSnippetAction extends EditorAction {
 		const snippet = await new Promise<Snippet | undefined>((resolve, reject) => {
 
 			const { lineNumber, column } = editor.getPosition();
-			let { snippet, name, langId } = Args.fromUser(arg);
+			const { snippet, name, langId } = Args.fromUser(arg);
 
 			if (snippet) {
 				return resolve(new Snippet(
@@ -107,12 +106,12 @@ class InsertSnippetAction extends EditorAction {
 				));
 			}
 
-			let languageId = NULL_MODE_ID;
+			let languageId: string;
 			if (langId) {
-				const otherLangId = languageService.validateLanguageId(langId);
-				if (otherLangId) {
-					languageId = otherLangId;
+				if (!languageService.isRegisteredLanguageId(langId)) {
+					return resolve(undefined);
 				}
+				languageId = langId;
 			} else {
 				editor.getModel().tokenizeIfCheap(lineNumber);
 				languageId = editor.getModel().getLanguageIdAtPosition(lineNumber, column);

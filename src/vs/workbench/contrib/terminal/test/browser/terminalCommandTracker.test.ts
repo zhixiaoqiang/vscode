@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { Terminal } from 'xterm';
-import { CommandTrackerAddon } from 'vs/workbench/contrib/terminal/browser/xterm/commandTrackerAddon';
+import { CommandTrackerAddon, NaiveCommandTrackerAddon } from 'vs/workbench/contrib/terminal/browser/xterm/commandTrackerAddon';
 import { isWindows } from 'vs/base/common/platform';
 import { IXtermCore } from 'vs/workbench/contrib/terminal/browser/xterm-private';
 import { timeout } from 'vs/base/common/async';
@@ -32,12 +32,12 @@ suite('Workbench - TerminalCommandTracker', function () {
 	let xterm: TestTerminal;
 	let commandTracker: CommandTrackerAddon;
 
-	setup(async function () {
-		// These tests are flaky on GH actions as sometimes they are particularly slow and timeout
-		// on the await writeP calls. These have been reduced but the timeout is increased to try
-		// catch edge cases.
-		this.timeout(20000);
+	// These tests are flaky on GH actions as sometimes they are particularly slow and timeout
+	// on the await writeP calls. These have been reduced but the timeout is increased to try
+	// catch edge cases.
+	this.timeout(20000);
 
+	setup(async function () {
 		xterm = (<TestTerminal>new Terminal({
 			cols: COLS,
 			rows: ROWS
@@ -48,7 +48,7 @@ suite('Workbench - TerminalCommandTracker', function () {
 			data += `${i}\n`;
 		}
 		await writeP(xterm, data);
-		commandTracker = new CommandTrackerAddon();
+		commandTracker = new NaiveCommandTrackerAddon();
 		xterm.loadAddon(commandTracker);
 	});
 
@@ -70,9 +70,6 @@ suite('Workbench - TerminalCommandTracker', function () {
 	suite('Commands', () => {
 		let container: HTMLElement;
 		setup(() => {
-			(<any>window).matchMedia = () => {
-				return { addListener: () => { } };
-			};
 			container = document.createElement('div');
 			document.body.appendChild(container);
 			xterm.open(container);

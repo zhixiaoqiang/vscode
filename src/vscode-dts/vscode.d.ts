@@ -136,9 +136,8 @@ declare module 'vscode' {
 		/**
 		 * Save the underlying file.
 		 *
-		 * @return A promise that will resolve to true when the file
-		 * has been saved. If the file was not dirty or the save failed,
-		 * will return false.
+		 * @return A promise that will resolve to `true` when the file
+		 * has been saved. If the save failed, will return `false`.
 		 */
 		save(): Thenable<boolean>;
 
@@ -1485,22 +1484,25 @@ declare module 'vscode' {
 	export class Disposable {
 
 		/**
-		 * Combine many disposable-likes into one. Use this method
-		 * when having objects with a dispose function which are not
-		 * instances of Disposable.
+		 * Combine many disposable-likes into one. You can use this method when having objects with
+		 * a dispose function which aren't instances of `Disposable`.
 		 *
-		 * @param disposableLikes Objects that have at least a `dispose`-function member.
+		 * @param disposableLikes Objects that have at least a `dispose`-function member. Note that asynchronous
+		 * dispose-functions aren't awaited.
 		 * @return Returns a new disposable which, upon dispose, will
 		 * dispose all provided disposables.
 		 */
 		static from(...disposableLikes: { dispose: () => any }[]): Disposable;
 
 		/**
-		 * Creates a new Disposable calling the provided function
+		 * Creates a new disposable that calls the provided function
 		 * on dispose.
+		 *
+		 * *Note* that an asynchronous function is not awaited.
+		 *
 		 * @param callOnDispose Function that disposes something.
 		 */
-		constructor(callOnDispose: Function);
+		constructor(callOnDispose: () => any);
 
 		/**
 		 * Dispose this object.
@@ -1944,6 +1946,18 @@ declare module 'vscode' {
 
 		/**
 		 * A base file path to which this pattern will be matched against relatively.
+		 */
+		baseUri: Uri;
+
+		/**
+		 * A base file path to which this pattern will be matched against relatively.
+		 *
+		 * This matches the `fsPath` value of {@link RelativePattern.baseUri}.
+		 *
+		 * *Note:* updating this value will update {@link RelativePattern.baseUri} to
+		 * be a uri with `file` scheme.
+		 *
+		 * @deprecated This property is deprecated, please use {@link RelativePattern.baseUri} instead.
 		 */
 		base: string;
 
@@ -6263,6 +6277,8 @@ declare module 'vscode' {
 		/**
 		 * An array to which disposables can be added. When this
 		 * extension is deactivated the disposables will be disposed.
+		 *
+		 * *Note* that asynchronous dispose-functions aren't awaited.
 		 */
 		readonly subscriptions: { dispose(): any }[];
 
@@ -7403,13 +7419,23 @@ declare module 'vscode' {
 		readonly onDidChangeFile: Event<FileChangeEvent[]>;
 
 		/**
-		 * Subscribe to events in the file or folder denoted by `uri`.
+		 * Subscribes to file change events in the file or folder denoted by `uri`. For folders,
+		 * the option `recursive` indicates whether subfolders, sub-subfolders, etc. should
+		 * be watched for file changes as well. With `recursive: false`, only changes to the
+		 * files that are direct children of the folder should trigger an event.
 		 *
-		 * The editor will call this function for files and folders. In the latter case, the
-		 * options differ from defaults, e.g. what files/folders to exclude from watching
-		 * and if subfolders, sub-subfolder, etc. should be watched (`recursive`).
+		 * The `excludes` array is used to indicate paths that should be excluded from file
+		 * watching. It is typically derived from the `files.watcherExclude` setting that
+		 * is configurable by the user. Each entry can be be:
+		 * - the absolute path to exclude
+		 * - a relative path to exclude (for example `build/output`)
+		 * - a simple glob pattern (for example `**​/build`, `output/**`)
 		 *
-		 * @param uri The uri of the file to be watched.
+		 * It is the file system provider's job to call {@linkcode FileSystemProvider.onDidChangeFile onDidChangeFile}
+		 * for every change given these rules. No event should be emitted for files that match any of the provided
+		 * excludes.
+		 *
+		 * @param uri The uri of the file or folder to be watched.
 		 * @param options Configures the watch.
 		 * @returns A disposable that tells the provider to stop watching the `uri`.
 		 */
@@ -10933,21 +10959,115 @@ declare module 'vscode' {
 		export function updateWorkspaceFolders(start: number, deleteCount: number | undefined | null, ...workspaceFoldersToAdd: { uri: Uri, name?: string }[]): boolean;
 
 		/**
-		 * Creates a file system watcher.
+		 * Creates a file system watcher that is notified on file events (create, change, delete)
+		 * depending on the parameters provided.
 		 *
-		 * A glob pattern that filters the file events on their absolute path must be provided. Optionally,
-		 * flags to ignore certain kinds of events can be provided. To stop listening to events the watcher must be disposed.
+		 * By default, all opened {@link workspace.workspaceFolders workspace folders} will be watched
+		 * for file changes recursively.
 		 *
-		 * *Note* that only files within the current {@link workspace.workspaceFolders workspace folders} can be watched.
-		 * *Note* that when watching for file changes such as '**​/*.js', notifications will not be sent when a parent folder is
-		 * moved or deleted (this is a known limitation of the current implementation and may change in the future).
+		 * Additional folders can be added for file watching by providing a {@link RelativePattern} with
+		 * a `base` that is outside of any of the currently opened workspace folders. If the `pattern` is
+		 * complex (e.g. contains `**` or path segments), the folder will be watched recursively and
+		 * otherwise will be watched non-recursively (i.e. only changes to the first level of the path
+		 * will be reported).
 		 *
-		 * @param globPattern A {@link GlobPattern glob pattern} that is applied to the absolute paths of created, changed,
-		 * and deleted files. Use a {@link RelativePattern relative pattern} to limit events to a certain {@link WorkspaceFolder workspace folder}.
+		 * Providing a `string` as `globPattern` acts as convenience method for watching file events in
+		 * all opened workspace folders. This method should be used if you only care about file events
+		 * from the workspace and not from any other folder. It cannot be used to add more folders for
+		 * file watching.
+		 *
+		 * Optionally, flags to ignore certain kinds of events can be provided.
+		 *
+		 * To stop listening to events the watcher must be disposed.
+		 *
+		 * *Note* that file events from file watchers may be excluded based on user configuration.
+		 * The setting `files.watcherExclude` helps to reduce the overhead of file events from folders
+		 * that are known to produce many file changes at once (such as `node_modules` folders). As such,
+		 * it is highly recommended to watch with simple patterns that do not require recursive watchers.
+		 *
+		 * *Note* that symbolic links are not automatically followed for file watching unless the path to
+		 * watch itself is a symbolic link.
+		 *
+		 * *Note* that file changes for the path to be watched may not be delivered when the path itself
+		 * changes. For example, when watching a path `/Users/somename/Desktop` and the path itself is
+		 * being deleted, the watcher may not report an event and may not work anymore from that moment on.
+		 * The underlying behaviour depends on the path that is provided for watching:
+		 * * if the path is within any of the workspace folders, deletions are tracked and reported unless
+		 *   excluded via `files.watcherExclude` setting
+		 * * if the path is equal to any of the workspace folders, deletions are not tracked
+		 * * if the path is outside of any of the workspace folders, deletions are not tracked
+		 *
+		 * If you are interested in being notified when the watched path itself is being deleted, you have
+		 * to watch it's parent folder. Make sure to use a simple `pattern` (such as putting the name of the
+		 * folder) to not accidentally watch all sibling folders recursively.
+		 *
+		 * *Note* that the file paths that are reported for having changed may have a different path casing
+		 * compared to the actual casing on disk on case-insensitive platforms (typically macOS and Windows
+		 * but not Linux). We allow a user to open a workspace folder with any desired path casing and try
+		 * to preserve that. This means:
+		 * * if the path is within any of the workspace folders, the path will match the casing of the
+		 *   workspace folder up to that portion of the path and match the casing on disk for children
+		 * * if the path is outside of any of the workspace folders, the casing will match the case of the
+		 *   path that was provided for watching
+		 * In the same way, symbolic links are preserved, i.e. the file event will report the path of the
+		 * symbolic link as it was provided for watching and not the target.
+		 *
+		 * ### Examples
+		 *
+		 * The basic anatomy of a file watcher is as follows:
+		 *
+		 * ```ts
+		 * const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(<folder>, <pattern>));
+		 *
+		 * watcher.onDidChange(uri => { ... }); // listen to files being changed
+		 * watcher.onDidCreate(uri => { ... }); // listen to files/folders being created
+		 * watcher.onDidDelete(uri => { ... }); // listen to files/folders getting deleted
+		 *
+		 * watcher.dispose(); // dispose after usage
+		 * ```
+		 *
+		 * #### Workspace file watching
+		 *
+		 * If you only care about file events in a specific workspace folder:
+		 *
+		 * ```ts
+		 * vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], '**​/*.js'));
+		 * ```
+		 *
+		 * If you want to monitor file events across all opened workspace folders:
+		 *
+		 * ```ts
+		 * vscode.workspace.createFileSystemWatcher('**​/*.js'));
+		 * ```
+		 *
+		 * *Note:* the array of workspace folders can be empy if no workspace is opened (empty window).
+		 *
+		 * #### Out of workspace file watching
+		 *
+		 * To watch a folder for changes to *.js files outside the workspace (non recursively), pass in a `Uri` to such
+		 * a folder:
+		 *
+		 * ```ts
+		 * vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(<path to folder outside workspace>), '*.js'));
+		 * ```
+		 *
+		 * And use a complex glob pattern to watch recursively:
+		 *
+		 * ```ts
+		 * vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(<path to folder outside workspace>), '**​/*.js'));
+		 * ```
+		 *
+		 * Here is an example for watching the active editor for file changes:
+		 *
+		 * ```ts
+		 * vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.window.activeTextEditor.document.uri, '*'));
+		 * ```
+		 *
+		 * @param globPattern A {@link GlobPattern glob pattern} that controls which file events the watcher should report.
 		 * @param ignoreCreateEvents Ignore when files have been created.
 		 * @param ignoreChangeEvents Ignore when files have been changed.
 		 * @param ignoreDeleteEvents Ignore when files have been deleted.
-		 * @return A new file system watcher instance.
+		 * @return A new file system watcher instance. Must be disposed when no longer needed.
 		 */
 		export function createFileSystemWatcher(globPattern: GlobPattern, ignoreCreateEvents?: boolean, ignoreChangeEvents?: boolean, ignoreDeleteEvents?: boolean): FileSystemWatcher;
 
@@ -10974,7 +11094,8 @@ declare module 'vscode' {
 		 * Save all dirty files.
 		 *
 		 * @param includeUntitled Also save files that have been created during this session.
-		 * @return A thenable that resolves when the files have been saved.
+		 * @return A thenable that resolves when the files have been saved. Will return `false`
+		 * for any file that failed to save.
 		 */
 		export function saveAll(includeUntitled?: boolean): Thenable<boolean>;
 

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as playwright from 'playwright';
+import * as playwright from '@playwright/test';
 import { ChildProcess, spawn } from 'child_process';
 import { join } from 'path';
 import { mkdir } from 'fs';
@@ -229,13 +229,14 @@ async function launchServer(options: LaunchOptions) {
 
 	let serverLocation: string | undefined;
 	if (codeServerPath) {
-		serverLocation = join(codeServerPath, `server.${process.platform === 'win32' ? 'cmd' : 'sh'}`);
+		const { serverApplicationName } = require(join(codeServerPath, 'product.json'));
+		serverLocation = join(codeServerPath, 'bin', `${serverApplicationName}${process.platform === 'win32' ? '.cmd' : ''}`);
 		args.push(`--logsPath=${logsPath}`);
 
 		logger.log(`Starting built server from '${serverLocation}'`);
 		logger.log(`Storing log files into '${logsPath}'`);
 	} else {
-		serverLocation = join(root, `resources/server/web.${process.platform === 'win32' ? 'bat' : 'sh'}`);
+		serverLocation = join(root, `scripts/code-server.${process.platform === 'win32' ? 'bat' : 'sh'}`);
 		args.push('--logsPath', logsPath);
 
 		logger.log(`Starting server out of sources from '${serverLocation}'`);
@@ -249,10 +250,6 @@ async function launchServer(options: LaunchOptions) {
 	);
 
 	logger.log(`Started server for browser smoke tests (pid: ${serverProcess.pid})`);
-	serverProcess.once('exit', (code, signal) => logger.log(`Server for browser smoke tests terminated (pid: ${serverProcess.pid}, code: ${code}, signal: ${signal})`));
-
-	serverProcess.stderr?.on('data', error => logger.log(`Server stderr: ${error}`));
-	serverProcess.stdout?.on('data', data => logger.log(`Server stdout: ${data}`));
 
 	return {
 		serverProcess,
@@ -262,7 +259,10 @@ async function launchServer(options: LaunchOptions) {
 
 async function launchBrowser(options: LaunchOptions, endpoint: string) {
 	const { logger, workspacePath } = options;
+
 	const browser = await measureAndLog(playwright[options.browser ?? 'chromium'].launch({ headless: options.headless ?? false }), 'playwright#launch', logger);
+	browser.on('disconnected', () => logger.log(`Playwright: browser disconnected`));
+
 	const context = await measureAndLog(browser.newContext(), 'browser.newContext', logger);
 
 	try {
@@ -275,15 +275,16 @@ async function launchBrowser(options: LaunchOptions, endpoint: string) {
 	await measureAndLog(page.setViewportSize({ width, height }), 'page.setViewportSize', logger);
 
 	page.on('pageerror', async (error) => logger.log(`Playwright ERROR: page error: ${error}`));
-	page.on('crash', page => logger.log('Playwright ERROR: page crash'));
+	page.on('crash', () => logger.log('Playwright ERROR: page crash'));
+	page.on('close', () => logger.log('Playwright: page close'));
 	page.on('response', async (response) => {
 		if (response.status() >= 400) {
 			logger.log(`Playwright ERROR: HTTP status ${response.status()} for ${response.url()}`);
 		}
 	});
 
-	const payloadParam = `[["enableProposedApi",""],["webviewExternalEndpointCommit","69df0500a8963fc469161c038a14a39384d5a303"],["skipWelcome","true"]]`;
-	await measureAndLog(page.goto(`${endpoint}&folder=vscode-remote://localhost:9888${URI.file(workspacePath!).path}&payload=${payloadParam}`), 'page.goto()', logger);
+	const payloadParam = `[["enableProposedApi",""],["webviewExternalEndpointCommit","d372f9187401bd145a0a6e15ba369e2d82d02005"],["skipWelcome","true"]]`;
+	await measureAndLog(page.goto(`${endpoint}&folder=${URI.file(workspacePath!).path}&payload=${payloadParam}`), 'page.goto()', logger);
 
 	return { browser, context, page };
 }
