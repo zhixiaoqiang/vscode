@@ -652,6 +652,14 @@ export class AzureActiveDirectoryService {
 	}
 
 	private async refreshToken(refreshToken: string, scopeData: IScopeData, sessionId: string): Promise<IToken> {
+		if (this._refreshingPromise) {
+			Logger.info('Refreshing in progress. Waiting for completion before continuing.');
+			try {
+				await this._refreshingPromise;
+			} catch (e) {
+				// this will get logged in the refresh function.
+			}
+		}
 		this._refreshingPromise = this.doRefreshToken(refreshToken, scopeData, sessionId);
 		try {
 			const result = await this._refreshingPromise;
