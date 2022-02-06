@@ -12,6 +12,8 @@ import { ExperimentationTelemetry } from './experimentationService';
 import { AuthProviderType } from './github';
 import { Log } from './common/logger';
 import { isSupportedEnvironment } from './common/env';
+import path = require('path');
+import { LoopbackAuthServer } from './authServer';
 
 const localize = nls.loadMessageBundle();
 const CLIENT_ID = '01ab8ac9400c4e429b23';
@@ -170,39 +172,77 @@ export class GitHubServer implements IGitHubServer {
 			return token;
 		}
 
-		this.updateStatusBarItem(true);
+		return await this.createSessionWithLocalServer(scopes);
 
+		// this.updateStatusBarItem(true);
+
+		// const state = uuid();
+		// const existingStates = this._pendingStates.get(scopes) || [];
+		// this._pendingStates.set(scopes, [...existingStates, state]);
+
+		// const uri = vscode.Uri.parse(`https://${AUTH_RELAY_SERVER}/authorize/?callbackUri=${encodeURIComponent(callbackUri.toString())}&scope=${scopes}&state=${state}&responseType=code&authServer=https://github.com`);
+		// await vscode.env.openExternal(uri);
+
+		// // Register a single listener for the URI callback, in case the user starts the login process multiple times
+		// // before completing it.
+		// let codeExchangePromise = this._codeExchangePromises.get(scopes);
+		// if (!codeExchangePromise) {
+		// 	codeExchangePromise = promiseFromEvent(this._uriHandler.event, this.exchangeCodeForToken(scopes));
+		// 	this._codeExchangePromises.set(scopes, codeExchangePromise);
+		// }
+
+		// return Promise.race([
+		// 	codeExchangePromise.promise,
+		// 	promiseFromEvent<string | undefined, string>(this._onDidManuallyProvideToken.event, (token: string | undefined, resolve, reject): void => {
+		// 		if (!token) {
+		// 			reject('Cancelled');
+		// 		} else {
+		// 			resolve(token);
+		// 		}
+		// 	}).promise,
+		// 	new Promise<string>((_, reject) => setTimeout(() => reject('Cancelled'), 60000))
+		// ]).finally(() => {
+		// 	this._pendingStates.delete(scopes);
+		// 	codeExchangePromise?.cancel.fire();
+		// 	this._codeExchangePromises.delete(scopes);
+		// 	this.updateStatusBarItem(false);
+		// });
+	}
+
+	private async createSessionWithLocalServer(scopes: string) {
 		const state = uuid();
-		const existingStates = this._pendingStates.get(scopes) || [];
-		this._pendingStates.set(scopes, [...existingStates, state]);
+		const loginUrl = `https://${AUTH_RELAY_SERVER}/authorize/?callbackUri=${encodeURIComponent('http://localhost:8080/callback')}&scope=${scopes}&state=${state}&responseType=code&authServer=https://github.com`;
+		const server = new LoopbackAuthServer(path.join(__dirname, '../media'), loginUrl);
+		await server.start();
 
-		const uri = vscode.Uri.parse(`https://${AUTH_RELAY_SERVER}/authorize/?callbackUri=${encodeURIComponent(callbackUri.toString())}&scope=${scopes}&state=${state}&responseType=code&authServer=https://github.com`);
-		await vscode.env.openExternal(uri);
-
-		// Register a single listener for the URI callback, in case the user starts the login process multiple times
-		// before completing it.
-		let codeExchangePromise = this._codeExchangePromises.get(scopes);
-		if (!codeExchangePromise) {
-			codeExchangePromise = promiseFromEvent(this._uriHandler.event, this.exchangeCodeForToken(scopes));
-			this._codeExchangePromises.set(scopes, codeExchangePromise);
+		let codeToExchange;
+		try {
+			vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${server.port}/signin?nonce=${encodeURIComponent(server.nonce)}`));
+			const { code } = await server.waitForOAuthResponse();
+			codeToExchange = code;
+		} finally {
+			setTimeout(() => {
+				void server.stop();
+			}, 5000);
 		}
 
-		return Promise.race([
-			codeExchangePromise.promise,
-			promiseFromEvent<string | undefined, string>(this._onDidManuallyProvideToken.event, (token: string | undefined, resolve, reject): void => {
-				if (!token) {
-					reject('Cancelled');
-				} else {
-					resolve(token);
-				}
-			}).promise,
-			new Promise<string>((_, reject) => setTimeout(() => reject('Cancelled'), 60000))
-		]).finally(() => {
-			this._pendingStates.delete(scopes);
-			codeExchangePromise?.cancel.fire();
-			this._codeExchangePromises.delete(scopes);
-			this.updateStatusBarItem(false);
+		const url = `https://${AUTH_RELAY_SERVER}/token?code=${codeToExchange}&state=${state}`;
+		this._logger.info('Exchanging code for token...');
+
+		const result = await fetch(url, {
+			method: 'POST',
+			headers: {
+				Accept: 'application/json'
+			}
 		});
+
+		if (result.ok) {
+			const json = await result.json();
+			this._logger.info('Token exchange success!');
+			return json.access_token;
+		} else {
+			throw new Error(result.statusText);
+		}
 	}
 
 	private async doDeviceCodeFlow(scopes: string): Promise<string> {
