@@ -156,7 +156,7 @@ stages:
         dependsOn:
           - Compile
         pool:
-          vmImage: windows-latest
+          vmImage: windows-2022
         jobs:
           - ${{ if eq(parameters.VSCODE_BUILD_WIN32, true) }}:
               - job: Windows
@@ -291,14 +291,13 @@ stages:
           - Compile
         pool:
           vmImage: macOS-latest
-        variables:
-          BUILDSECMON_OPT_IN: true
         jobs:
           - ${{ if eq(parameters.VSCODE_BUILD_MACOS, true) }}:
               - job: macOS
                 timeoutInMinutes: 90
                 variables:
                   VSCODE_ARCH: x64
+                  BUILDSECMON_OPT_IN: true
                 steps:
                   - template: darwin/product-build-darwin.yml
               - ${{ if ne(variables['VSCODE_PUBLISH'], 'false') }}:
@@ -308,6 +307,7 @@ stages:
                     timeoutInMinutes: 90
                     variables:
                       VSCODE_ARCH: x64
+                      BUILDSECMON_OPT_IN: true
                     steps:
                       - template: darwin/product-build-darwin-sign.yml
 
@@ -316,6 +316,7 @@ stages:
                 timeoutInMinutes: 90
                 variables:
                   VSCODE_ARCH: arm64
+                  BUILDSECMON_OPT_IN: true
                 steps:
                   - template: darwin/product-build-darwin.yml
               - ${{ if ne(variables['VSCODE_PUBLISH'], 'false') }}:
@@ -325,6 +326,7 @@ stages:
                     timeoutInMinutes: 90
                     variables:
                       VSCODE_ARCH: arm64
+                      BUILDSECMON_OPT_IN: true
                     steps:
                       - template: darwin/product-build-darwin-sign.yml
 
@@ -336,6 +338,7 @@ stages:
                 timeoutInMinutes: 90
                 variables:
                   VSCODE_ARCH: universal
+                  BUILDSECMON_OPT_IN: true
                 steps:
                   - template: darwin/product-build-darwin.yml
               - ${{ if ne(variables['VSCODE_PUBLISH'], 'false') }}:
@@ -345,6 +348,7 @@ stages:
                     timeoutInMinutes: 90
                     variables:
                       VSCODE_ARCH: universal
+                      BUILDSECMON_OPT_IN: true
                     steps:
                       - template: darwin/product-build-darwin-sign.yml
 
