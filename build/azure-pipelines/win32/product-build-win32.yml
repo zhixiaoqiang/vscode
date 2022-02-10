@@ -155,6 +155,7 @@ steps:
       exec { .\scripts\test.bat --build --tfs "Unit Tests" }
     displayName: Run unit tests (Electron)
     timeoutInMinutes: 15
+    continueOnError: true
     condition: and(succeeded(), eq(variables['VSCODE_STEP_ON_IT'], 'false'), ne(variables['VSCODE_ARCH'], 'arm64'))
 
   - powershell: |
@@ -163,6 +164,7 @@ steps:
       exec { yarn test-node --build }
     displayName: Run unit tests (node.js)
     timeoutInMinutes: 15
+    continueOnError: true
     condition: and(succeeded(), eq(variables['VSCODE_STEP_ON_IT'], 'false'), ne(variables['VSCODE_ARCH'], 'arm64'))
 
   - powershell: |
@@ -185,6 +187,7 @@ steps:
       exec { $env:INTEGRATION_TEST_ELECTRON_PATH = "$AppRoot\$AppNameShort.exe"; $env:VSCODE_REMOTE_SERVER_PATH = "$(agent.builddirectory)\vscode-reh-win32-$(VSCODE_ARCH)"; .\scripts\test-integration.bat --build --tfs "Integration Tests" }
     displayName: Run integration tests (Electron)
     timeoutInMinutes: 20
+    continueOnError: true
     condition: and(succeeded(), eq(variables['VSCODE_STEP_ON_IT'], 'false'), ne(variables['VSCODE_ARCH'], 'arm64'))
 
   - powershell: |
@@ -193,6 +196,7 @@ steps:
       exec { $env:VSCODE_REMOTE_SERVER_PATH = "$(agent.builddirectory)\vscode-reh-web-win32-$(VSCODE_ARCH)"; .\scripts\test-web-integration.bat --browser firefox }
     displayName: Run integration tests (Browser, Firefox)
     timeoutInMinutes: 20
+    continueOnError: true
     condition: and(succeeded(), eq(variables['VSCODE_STEP_ON_IT'], 'false'), ne(variables['VSCODE_ARCH'], 'arm64'))
 
   - powershell: |
@@ -204,6 +208,7 @@ steps:
       exec { $env:INTEGRATION_TEST_ELECTRON_PATH = "$AppRoot\$AppNameShort.exe"; $env:VSCODE_REMOTE_SERVER_PATH = "$(agent.builddirectory)\vscode-reh-win32-$(VSCODE_ARCH)"; .\scripts\test-remote-integration.bat }
     displayName: Run integration tests (Remote)
     timeoutInMinutes: 20
+    continueOnError: true
     condition: and(succeeded(), eq(variables['VSCODE_STEP_ON_IT'], 'false'), ne(variables['VSCODE_ARCH'], 'arm64'))
 
   - powershell: |
@@ -213,6 +218,7 @@ steps:
       exec { yarn smoketest-no-compile --web --headless }
     displayName: Run smoke tests (Browser, Chromium)
     timeoutInMinutes: 10
+    continueOnError: true
     condition: and(succeeded(), eq(variables['VSCODE_STEP_ON_IT'], 'false'), ne(variables['VSCODE_ARCH'], 'arm64'))
 
   - powershell: |
@@ -223,6 +229,7 @@ steps:
     displayName: Run smoke tests (Electron)
     # Increased timeout because this test downloads stable code
     timeoutInMinutes: 20
+    continueOnError: true
     condition: and(succeeded(), eq(variables['VSCODE_STEP_ON_IT'], 'false'), ne(variables['VSCODE_ARCH'], 'arm64'))
 
   - powershell: |
@@ -233,6 +240,7 @@ steps:
       exec { yarn smoketest-no-compile --build "$AppRoot" --remote }
     displayName: Run smoke tests (Remote)
     timeoutInMinutes: 10
+    continueOnError: true
     condition: and(succeeded(), eq(variables['VSCODE_STEP_ON_IT'], 'false'), ne(variables['VSCODE_ARCH'], 'arm64'))
 
   - powershell: |
