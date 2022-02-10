@@ -18,6 +18,7 @@ function Exec
 		[Parameter(Position=1,Mandatory=0)][string]$errorMessage = ($msgs.error_bad_command -f $cmd)
 	)
 	& $cmd
+	Write-Host $lastexitcode
 	if ($lastexitcode -ne 0) {
 		throw ("Exec: " + $errorMessage)
 	}
