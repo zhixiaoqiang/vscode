@@ -25,6 +25,7 @@ import { TERMINAL_COMMAND_DECORATION_DEFAULT_BACKGROUND_COLOR, TERMINAL_COMMAND_
 
 const enum DecorationSelector {
 	CommandDecoration = 'terminal-command-decoration',
+	CommandDecorationScroll = 'xterm-decoration-scrollbar',
 	ErrorColor = 'error',
 	SkippedColor = 'skipped',
 	Codicon = 'codicon',
@@ -118,7 +119,12 @@ export class DecorationAddon extends Disposable implements ITerminalAddon {
 			if (e) {
 				e.style.width = '10px';
 				e.style.height = '4px';
-				e.style.backgroundColor = 'blue';
+				if (command.exitCode === undefined) {
+					e.classList.add(DecorationSelector.SkippedColor);
+				} else if (command.exitCode) {
+					e.classList.add(DecorationSelector.ErrorColor);
+				} else {
+				}
 				e.style.left = `${e.parentElement!.parentElement!.clientWidth - 9}px`;
 			}
 		});
@@ -209,4 +215,7 @@ registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) =
 	collector.addRule(`.${DecorationSelector.CommandDecoration}.${DecorationSelector.ErrorColor} { color: ${errorColor.toString()}; } `);
 	collector.addRule(`.${DecorationSelector.CommandDecoration}.${DecorationSelector.SkippedColor} { color: ${skippedColor.toString()};} `);
 	collector.addRule(`.${DecorationSelector.CommandDecoration}: not(.${DecorationSelector.SkippedColor}): hover { background-color: ${hoverBackgroundColor.toString()}; }`);
+	collector.addRule(`.${DecorationSelector.CommandDecorationScroll} { background-color: ${defaultColor.toString()}; } `);
+	collector.addRule(`.${DecorationSelector.CommandDecorationScroll}.${DecorationSelector.ErrorColor} { background-color: ${errorColor.toString()}; } `);
+	collector.addRule(`.${DecorationSelector.CommandDecorationScroll}.${DecorationSelector.SkippedColor} { background-color: ${skippedColor.toString()};} `);
 });
