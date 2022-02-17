@@ -110,10 +110,15 @@ export class DecorationAddon extends Disposable implements ITerminalAddon {
 		}
 
 		const decoration = this._terminal.registerDecoration({ marker: command.marker });
+		const scrollbarDecoration = this._terminal.registerDecoration({ marker: command.marker, inScrollbar: true });
 		if (!decoration) {
 			return undefined;
 		}
-
+		if (scrollbarDecoration?.element) {
+			scrollbarDecoration.element.style.width = '10px';
+			scrollbarDecoration.element.style.height = '4px';
+			scrollbarDecoration.element.style.backgroundColor = 'blue';
+		}
 		decoration.onRender(target => {
 			if (decoration.element && !this._decorations.get(decoration.marker.id)) {
 				const disposables = command.exitCode === undefined ? [] : [this._createContextMenu(decoration.element, command), ...this._createHover(decoration.element, command)];
