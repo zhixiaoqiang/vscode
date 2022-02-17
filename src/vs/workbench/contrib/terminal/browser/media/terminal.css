@@ -431,3 +431,11 @@
 .terminal-command-decoration.skipped {
 	pointer-events: none;
 }
+.xterm-decoration-scrollbar {
+    z-index: 6;
+    position: absolute;
+    width: 10px;
+    height: 4px;
+    background-color: blue;
+    margin-right: -10px
+}
