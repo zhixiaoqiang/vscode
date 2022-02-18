@@ -34,12 +34,7 @@ update_prompt() {
 }
 
 precmd() {
-	local STATUS="$?"
-	if [ -z "${IN_COMMAND_EXECUTION-}" ]; then
-		# not in command execution
-		command_output_start
-	fi
-
+	STATUS="$?"
 	command_complete "$STATUS"
 
 	# in command execution
@@ -51,11 +46,11 @@ precmd() {
 
 preexec() {
 	PS1="$PRIOR_PROMPT"
-	IN_COMMAND_EXECUTION="1"
-	command_output_start
+	if [ -z "${IN_COMMAND_EXECUTION-}" ]; then
+		IN_COMMAND_EXECUTION="1"
+		command_output_start
+	fi
 }
-add-zsh-hook precmd precmd
-add-zsh-hook preexec preexec
 
 # Show the welcome message
 if [ -z "${VSCODE_SHELL_HIDE_WELCOME-}" ]; then
@@ -63,3 +58,6 @@ if [ -z "${VSCODE_SHELL_HIDE_WELCOME-}" ]; then
 else
 	VSCODE_SHELL_HIDE_WELCOME=""
 fi
+
+add-zsh-hook precmd precmd
+add-zsh-hook preexec preexec
