@@ -14,7 +14,7 @@ import { createDecorator } from 'vs/platform/instantiation/common/instantiation'
 import { URI } from 'vs/base/common/uri';
 import { IProcessDetails } from 'vs/platform/terminal/common/terminalProcess';
 import { Registry } from 'vs/platform/registry/common/platform';
-import { ITerminalCapabilityStore } from 'vs/workbench/contrib/terminal/common/capabilities/capabilities';
+import { ITerminalCapabilityStore, IXtermMarker } from 'vs/workbench/contrib/terminal/common/capabilities/capabilities';
 
 export const TERMINAL_VIEW_ID = 'terminal';
 
@@ -290,7 +290,9 @@ export interface ITerminalConfiguration {
 	persistentSessionReviveProcess: 'onExit' | 'onExitAndWindowClose' | 'never';
 	ignoreProcessNames: string[];
 	autoReplies: { [key: string]: string };
-	enableShellIntegration: boolean;
+	shellIntegration?: {
+		enabled: boolean;
+	};
 }
 
 export const DEFAULT_LOCAL_ECHO_EXCLUDE: ReadonlyArray<string> = ['vim', 'vi', 'nano', 'tmux'];
@@ -328,6 +330,16 @@ export interface IRemoteTerminalAttachTarget {
 
 export interface IShellIntegration {
 	capabilities: ITerminalCapabilityStore;
+}
+
+export interface ITerminalCommand {
+	command: string;
+	timestamp: number;
+	cwd?: string;
+	exitCode?: number;
+	marker?: IXtermMarker;
+	hasOutput: boolean;
+	getOutput(): string | undefined;
 }
 
 export interface INavigationMode {
@@ -547,6 +559,7 @@ export const enum TerminalCommandId {
 	MoveToEditorInstance = 'workbench.action.terminal.moveToEditorInstance',
 	MoveToTerminalPanel = 'workbench.action.terminal.moveToTerminalPanel',
 	SetDimensions = 'workbench.action.terminal.setDimensions',
+	ClearCommandHistory = 'workbench.action.terminal.clearCommandHistory',
 }
 
 export const DEFAULT_COMMANDS_TO_SKIP_SHELL: string[] = [

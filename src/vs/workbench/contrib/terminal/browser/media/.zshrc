@@ -1,22 +1,24 @@
+autoload -Uz add-zsh-hook
+
 IN_COMMAND_EXECUTION="1"
 prompt_start() {
-	printf "\033]133;A\007"
+	printf "\033]633;A\007"
 }
 
 prompt_end() {
-	printf "\033]133;B\007"
+	printf "\033]633;B\007"
 }
 
 update_cwd() {
-	printf "\033]1337;CurrentDir=%s\007" "$PWD"
+	printf "\033]633;P;Cwd=%s\007" "$PWD"
 }
 
 command_output_start() {
-	printf "\033]133;C\007"
+	printf "\033]633;C\007"
 }
 
 command_complete() {
-	printf "\033]133;D;%s\007" "$STATUS"
+	printf "\033]633;D;%s\007" "$STATUS"
 	update_cwd
 }
 
@@ -47,8 +49,8 @@ preexec() {
 	IN_COMMAND_EXECUTION="1"
 	command_output_start
 }
-precmd_functions+=($precmd_functions precmd)
-preexec_functions+=($preexec_functions preexec)
+add-zsh-hook precmd precmd
+add-zsh-hook preexec preexec
 
 # Show the welcome message
 if [ -z "${VSCODE_SHELL_HIDE_WELCOME-}" ]; then

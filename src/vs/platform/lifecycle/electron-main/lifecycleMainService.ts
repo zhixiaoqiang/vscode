@@ -15,7 +15,7 @@ import { createDecorator } from 'vs/platform/instantiation/common/instantiation'
 import { handleVetos } from 'vs/platform/lifecycle/common/lifecycle';
 import { ILogService } from 'vs/platform/log/common/log';
 import { IStateMainService } from 'vs/platform/state/electron-main/state';
-import { ICodeWindow, LoadReason, UnloadReason } from 'vs/platform/windows/electron-main/windows';
+import { ICodeWindow, LoadReason, UnloadReason } from 'vs/platform/window/electron-main/window';
 import { ISingleFolderWorkspaceIdentifier, IWorkspaceIdentifier } from 'vs/platform/workspace/common/workspace';
 
 export const ILifecycleMainService = createDecorator<ILifecycleMainService>('lifecycleMainService');
@@ -598,7 +598,7 @@ export class LifecycleMainService extends Disposable implements ILifecycleMainSe
 	async kill(code?: number): Promise<void> {
 		this.logService.trace('Lifecycle#kill()');
 
-		// Give main process participants a chance to oderly shutdown
+		// Give main process participants a chance to orderly shutdown
 		await this.fireOnWillShutdown();
 
 		// From extension tests we have seen issues where calling app.exit()

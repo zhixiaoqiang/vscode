@@ -103,6 +103,21 @@ const terminalConfiguration: IConfigurationNode = {
 			default: 'view',
 			description: localize('terminal.integrated.defaultLocation', "Controls where newly created terminals will appear.")
 		},
+		[TerminalSettingId.ShellIntegrationCommandIcon]: {
+			type: 'string',
+			default: 'primitive-dot',
+			description: localize('terminal.integrated.shellIntegration.commandIcon', "Controls the icon that will be used for each command in terminals with shell integration enabled that do not have an associated exit code. Set to '' to hide the icon.")
+		},
+		[TerminalSettingId.ShellIntegrationCommandIconError]: {
+			type: 'string',
+			default: 'error-small',
+			description: localize('terminal.integrated.shellIntegration.commandIconError', "Controls the icon that will be used for each command in terminals with shell integration enabled that do have an associated exit code. Set to '' to hide the icon.")
+		},
+		[TerminalSettingId.ShellIntegrationCommandIconSkipped]: {
+			type: 'string',
+			default: 'circle-outline',
+			description: localize('terminal.integrated.shellIntegration.commandIconSkipped', "Controls the icon that will be used for skipped/empty commands. Set to '' to hide the icon.")
+		},
 		[TerminalSettingId.TabsFocusMode]: {
 			type: 'string',
 			enum: ['singleClick', 'doubleClick'],
@@ -516,17 +531,23 @@ const terminalConfiguration: IConfigurationNode = {
 			},
 			default: {}
 		},
-		[TerminalSettingId.EnableShellIntegration]: {
+		[TerminalSettingId.ShellIntegrationEnabled]: {
 			restricted: true,
-			markdownDescription: localize('terminal.integrated.enableShellIntegration', "Enable the experimental shell integration feature which will turn on certain features like enhanced command tracking and current working directory detection. Shell integration works by injecting a script that is run when the shell is initialized which lets the terminal gain additional insights into what is happening within the terminal, the script injection may not work if you have custom arguments defined in the terminal profile.\n\nSupported shells:\n\n- Linux/macOS: bash, pwsh, zsh\n - Windows: pwsh"),
+			markdownDescription: localize('terminal.integrated.shellIntegration.enabled', "Enable the experimental shell integration feature which will turn on certain features like enhanced command tracking and current working directory detection. Shell integration works by injecting a script that is run when the shell is initialized which lets the terminal gain additional insights into what is happening within the terminal, the script injection may not work if you have custom arguments defined in the terminal profile.\n\nSupported shells:\n\n- Linux/macOS: bash, pwsh, zsh\n - Windows: pwsh"),
 			type: 'boolean',
 			default: false
 		},
-		[TerminalSettingId.ShowShellIntegrationWelcome]: {
+		[TerminalSettingId.ShellIntegrationShowWelcome]: {
 			restricted: true,
-			markdownDescription: localize('terminal.integrated.showShellIntegrationWelcome', "Whether to show the shell integration activated welcome message in the terminal when the feature is enabled."),
+			markdownDescription: localize('terminal.integrated.shellIntegration.showWelcome', "Whether to show the shell integration activated welcome message in the terminal when the feature is enabled."),
 			type: 'boolean',
 			default: true
+		},
+		[TerminalSettingId.ShellIntegrationCommandHistory]: {
+			restricted: true,
+			markdownDescription: localize('terminal.integrated.shellIntegration.history', "Controls the number of recently used commands to keep in the terminal command history. Set to 0 to disable terminal command history."),
+			type: 'number',
+			default: 100
 		},
 	}
 };

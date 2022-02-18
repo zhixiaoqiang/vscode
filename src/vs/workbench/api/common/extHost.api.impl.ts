@@ -423,7 +423,7 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				return extHostLanguages.changeLanguage(document.uri, languageId);
 			},
 			match(selector: vscode.DocumentSelector, document: vscode.TextDocument): number {
-				return score(typeConverters.LanguageSelector.from(selector), document.uri, document.languageId, true);
+				return score(typeConverters.LanguageSelector.from(selector), document.uri, document.languageId, true, document.notebook?.notebookType);
 			},
 			registerCodeActionsProvider(selector: vscode.DocumentSelector, provider: vscode.CodeActionProvider, metadata?: vscode.CodeActionProviderMetadata): vscode.Disposable {
 				return extHostLanguageFeatures.registerCodeActionProvider(extension, checkSelector(selector), provider, metadata);
@@ -748,21 +748,9 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 				checkProposedApiEnabled(extension, 'externalUriOpener');
 				return extHostUriOpeners.registerExternalUriOpener(extension.identifier, id, opener, metadata);
 			},
-			get tabs() {
+			get tabGroups(): vscode.TabGroups {
 				checkProposedApiEnabled(extension, 'tabs');
-				return extHostEditorTabs.tabs;
-			},
-			get activeTab() {
-				checkProposedApiEnabled(extension, 'tabs');
-				return extHostEditorTabs.activeTab;
-			},
-			get onDidChangeTabs() {
-				checkProposedApiEnabled(extension, 'tabs');
-				return extHostEditorTabs.onDidChangeTabs;
-			},
-			get onDidChangeActiveTab() {
-				checkProposedApiEnabled(extension, 'tabs');
-				return extHostEditorTabs.onDidChangeActiveTab;
+				return extHostEditorTabs.tabGroups;
 			},
 			getInlineCompletionItemController<T extends vscode.InlineCompletionItem>(provider: vscode.InlineCompletionItemProvider<T>): vscode.InlineCompletionController<T> {
 				checkProposedApiEnabled(extension, 'inlineCompletions');

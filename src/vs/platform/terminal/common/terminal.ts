@@ -102,11 +102,15 @@ export const enum TerminalSettingId {
 	ShowLinkHover = 'terminal.integrated.showLinkHover',
 	IgnoreProcessNames = 'terminal.integrated.ignoreProcessNames',
 	AutoReplies = 'terminal.integrated.autoReplies',
-	EnableShellIntegration = 'terminal.integrated.enableShellIntegration',
-	ShowShellIntegrationWelcome = 'terminal.integrated.showShellIntegrationWelcome'
+	ShellIntegrationEnabled = 'terminal.integrated.shellIntegration.enabled',
+	ShellIntegrationShowWelcome = 'terminal.integrated.shellIntegration.showWelcome',
+	ShellIntegrationCommandIcon = 'terminal.integrated.shellIntegration.commandIcon',
+	ShellIntegrationCommandIconError = 'terminal.integrated.shellIntegration.commandIconError',
+	ShellIntegrationCommandIconSkipped = 'terminal.integrated.shellIntegration.commandIconSkipped',
+	ShellIntegrationCommandHistory = 'terminal.integrated.shellIntegration.history'
 }
 
-export enum WindowsShellType {
+export const enum WindowsShellType {
 	CommandPrompt = 'cmd',
 	PowerShell = 'pwsh',
 	Wsl = 'wsl',
@@ -521,6 +525,18 @@ export const enum TerminalLocationString {
 	TerminalView = 'view',
 	Editor = 'editor'
 }
+
+export const enum TerminalCommandIcon {
+	TriangleRight = 'triangle-right',
+	ChevronRight = 'chevron-right',
+}
+
+export const enum TerminalCommandIconError {
+	TriangleRight = 'triangle-right',
+	ChevronRight = 'chevron-right',
+	X = 'x'
+}
+
 
 export type TerminalIcon = ThemeIcon | URI | { light: URI; dark: URI };
 
