@@ -95,7 +95,7 @@ export function compileTask(src: string, out: string, build: boolean): () => Nod
 		}
 
 		const compile = createCompile(src, build, true);
-		const srcPipe = gulp.src(`${src}/**`, { base: `${src}` });
+		const srcPipe = gulp.src(`${src}/**`, { base: `${src}`, dot: true });
 		let generator = new MonacoGenerator(false);
 		if (src === 'src') {
 			generator.execute();
