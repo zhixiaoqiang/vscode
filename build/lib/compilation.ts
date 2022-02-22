@@ -58,6 +58,7 @@ function createCompile(src: string, build: boolean, emitError?: boolean) {
 		const utf8Filter = util.filter(data => /(\/|\\)test(\/|\\).*utf8/.test(data.path));
 		const tsFilter = util.filter(data => /\.ts$/.test(data.path));
 		const noDeclarationsFilter = util.filter(data => !(/\.d\.ts$/.test(data.path)));
+		const zshrcFilter = util.filter(data => /\.zshrc$/.test(data.path));
 
 		const input = es.through();
 		const output = input
@@ -76,6 +77,7 @@ function createCompile(src: string, build: boolean, emitError?: boolean) {
 				sourceRoot: overrideOptions.sourceRoot
 			}))
 			.pipe(tsFilter.restore)
+			.pipe(zshrcFilter)
 			.pipe(reporter.end(!!emitError));
 
 		return es.duplex(input, output);
