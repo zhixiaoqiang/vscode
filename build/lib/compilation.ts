@@ -78,6 +78,7 @@ function createCompile(src: string, build: boolean, emitError?: boolean) {
 			}))
 			.pipe(tsFilter.restore)
 			.pipe(zshrcFilter)
+			.pipe(zshrcFilter.restore)
 			.pipe(reporter.end(!!emitError));
 
 		return es.duplex(input, output);
