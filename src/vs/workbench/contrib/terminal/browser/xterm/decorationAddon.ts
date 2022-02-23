@@ -144,19 +144,6 @@ export class DecorationAddon extends Disposable implements ITerminalAddon {
 		if (!command.marker) {
 			throw new Error(`cannot add a decoration for a command ${JSON.stringify(command)} with no marker`);
 		}
-		if (beforeCommandExecution) {
-			const decoration = this._terminal.registerDecoration({ marker: command.marker });
-			if (!decoration) {
-				return undefined;
-			}
-			decoration.onRender(target => {
-				this._applyStyles(target);
-				target.classList.add(DecorationSelector.DefaultColor);
-				target.classList.add(`codicon-${this._configurationService.getValue(TerminalSettingId.ShellIntegrationDecorationIcon)}`);
-			});
-			this._placeholderDecoration = decoration;
-			return decoration;
-		}
 
 		const decoration = this._terminal.registerDecoration({ marker: command.marker });
 		if (!decoration) {
@@ -172,6 +159,9 @@ export class DecorationAddon extends Disposable implements ITerminalAddon {
 				this._applyStyles(target, command.exitCode);
 			}
 		});
+		if (beforeCommandExecution) {
+			this._placeholderDecoration = decoration;
+		}
 		return decoration;
 	}
 
