@@ -168,6 +168,7 @@ export class DecorationAddon extends Disposable implements ITerminalAddon {
 		if (!decoration) {
 			return undefined;
 		}
+		this._terminal.registerScrollbarDecoration(command.marker);
 		decoration.onRender(element => {
 			decoration.onDispose(() => this._decorations.delete(decoration.marker.id));
 			if (beforeCommandExecution && !this._placeholderDecoration) {
