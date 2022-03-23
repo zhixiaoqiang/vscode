@@ -1112,6 +1112,7 @@ export class PersistentProtocol implements IMessagePassingProtocol {
 
 declare const process: any;
 declare const require: any;
+declare const Buffer: any;
 (() => {
 	if (!SocketDiagnostics.enableDiagnostics) {
 		return;
