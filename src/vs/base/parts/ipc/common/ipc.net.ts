@@ -51,7 +51,7 @@ export const enum SocketDiagnosticsEventType {
 
 export namespace SocketDiagnostics {
 
-	export const enableDiagnostics = false;
+	export const enableDiagnostics = true;
 
 	export interface IRecord {
 		timestamp: number;
@@ -1110,38 +1110,40 @@ export class PersistentProtocol implements IMessagePassingProtocol {
 	}
 }
 
-// (() => {
-// 	if (!SocketDiagnostics.enableDiagnostics) {
-// 		return;
-// 	}
-// 	if (typeof require.__$__nodeRequire !== 'function') {
-// 		console.log(`Can only log socket diagnostics on native platforms.`);
-// 		return;
-// 	}
-// 	const type = (
-// 		process.argv.includes('--type=renderer')
-// 			? 'renderer'
-// 			: (process.argv.includes('--type=extensionHost')
-// 				? 'extensionHost'
-// 				: (process.argv.some(item => item.includes('server-main'))
-// 					? 'server'
-// 					: 'unknown'
-// 				)
-// 			)
-// 	);
-// 	setTimeout(() => {
-// 		SocketDiagnostics.records.forEach(r => {
-// 			if (r.buff) {
-// 				r.data = Buffer.from(r.buff.buffer).toString('base64');
-// 				r.buff = undefined;
-// 			}
-// 		});
+declare const process: any;
+declare const require: any;
+(() => {
+	if (!SocketDiagnostics.enableDiagnostics) {
+		return;
+	}
+	if (typeof require.__$__nodeRequire !== 'function') {
+		console.log(`Can only log socket diagnostics on native platforms.`);
+		return;
+	}
+	const type = (
+		process.argv.includes('--type=renderer')
+			? 'renderer'
+			: (process.argv.includes('--type=extensionHost')
+				? 'extensionHost'
+				: (process.argv.some((item: string) => item.includes('server-main'))
+					? 'server'
+					: 'unknown'
+				)
+			)
+	);
+	setTimeout(() => {
+		SocketDiagnostics.records.forEach(r => {
+			if (r.buff) {
+				r.data = Buffer.from(r.buff.buffer).toString('base64');
+				r.buff = undefined;
+			}
+		});
 
-// 		const fs = <typeof import('fs')>require.__$__nodeRequire('fs');
-// 		const path = <typeof import('path')>require.__$__nodeRequire('path');
-// 		const logPath = path.join(process.cwd(),`${type}-${process.pid}`);
+		const fs = require.__$__nodeRequire('fs');
+		const path = require.__$__nodeRequire('path');
+		const logPath = path.join(process.cwd(), `${type}-${process.pid}`);
 
-// 		console.log(`dumping socket diagnostics at ${logPath}`);
-// 		fs.writeFileSync(logPath, JSON.stringify(SocketDiagnostics.records));
-// 	}, 20000);
-// })();
+		console.log(`dumping socket diagnostics at ${logPath}`);
+		fs.writeFileSync(logPath, JSON.stringify(SocketDiagnostics.records));
+	}, 20000);
+})();
