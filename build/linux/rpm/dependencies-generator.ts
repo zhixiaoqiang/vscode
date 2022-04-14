@@ -58,6 +58,9 @@ export function getDependencies(buildDir: string, applicationName: string): stri
 		return !bundledDeps.some(bundledDep => dependency.startsWith(bundledDep));
 	});
 
+	console.log('Printing the dependencies list:');
+	console.log(sortedDependencies.join('\n'));
+
 	if (JSON.stringify(sortedDependencies) !== JSON.stringify(referenceGeneratedDeps)) {
 		const failMessage = 'The dependencies list has changed. '
 			+ 'Printing newer dependencies list that one can use to compare against referenceGeneratedDeps:'
