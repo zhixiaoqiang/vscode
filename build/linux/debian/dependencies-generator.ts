@@ -128,6 +128,10 @@ async function calculatePackageDeps(binaryPath: string, arch: ArchString, buildR
 			depsStr = line.substring(shlibsDependsPrefix.length);
 		}
 	}
+
+	console.log('Printing deps for ' + arch + ' for ' + binaryPath);
+	console.log(depsStr.split(', ').join('\n'));
+
 	const requires = new Set(depsStr.split(', ').sort());
 	return requires;
 }
