@@ -54,8 +54,8 @@ export abstract class SimpleFindWidget extends Widget {
 	private _foundMatch: boolean = false;
 
 	constructor(
-		readonly state: FindReplaceState = new FindReplaceState(),
-		readonly options: IFindOptions,
+		state: FindReplaceState = new FindReplaceState(),
+		options: IFindOptions,
 		contextViewService: IContextViewService,
 		contextKeyService: IContextKeyService,
 		private readonly _keybindingService: IKeybindingService
