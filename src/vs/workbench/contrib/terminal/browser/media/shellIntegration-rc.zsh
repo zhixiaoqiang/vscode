@@ -17,9 +17,7 @@ fi
 
 # Shell integration was disabled by the shell, exit without warning assuming either the shell has
 # explicitly disabled shell integration as it's incompatible or it implements the protocol.
-if [ -z "$VSCODE_SHELL_INTEGRATION" ]; then
-	builtin return
-fi
+[[ -z $VSCODE_SHELL_INTEGRATION ]] || builtin return
 
 __vsc_in_command_execution="1"
 __vsc_last_history_id=0
@@ -79,6 +77,7 @@ __vsc_update_prompt() {
 }
 
 __vsc_precmd() {
+	eval ${__vsc_precmd_before}
 	local __vsc_status="$?"
 	if [ -z "${__vsc_in_command_execution-}" ]; then
 		# not in command execution
@@ -95,6 +94,7 @@ __vsc_precmd() {
 }
 
 __vsc_preexec() {
+	eval ${__vsc_preexec_before}
 	PS1="$__vsc_prior_prompt"
 	if [ -n "$RPROMPT" ]; then
 		RPROMPT="$__vsc_prior_rprompt"
@@ -102,5 +102,5 @@ __vsc_preexec() {
 	__vsc_in_command_execution="1"
 	__vsc_command_output_start
 }
-add-zsh-hook precmd __vsc_precmd
-add-zsh-hook preexec __vsc_preexec
+builtin add-zsh-hook precmd __vsc_precmd
+builtin add-zsh-hook preexec __vsc_preexec
