@@ -20,14 +20,14 @@ function generateVSCodeConfigurationTask() {
         if (!buildDir) {
             return reject(new Error('$AGENT_BUILDDIRECTORY not set'));
         }
-        if (!shouldSetupSettingsSearch()) {
-            console.log(`Only runs on main and release branches, not ${process.env.BUILD_SOURCEBRANCH}`);
-            return resolve(undefined);
-        }
-        if (process.env.VSCODE_QUALITY !== 'insider' && process.env.VSCODE_QUALITY !== 'stable') {
-            console.log(`Only runs on insider and stable qualities, not ${process.env.VSCODE_QUALITY}`);
-            return resolve(undefined);
-        }
+        // if (!shouldSetupSettingsSearch()) {
+        //     console.log(`Only runs on main and release branches, not ${process.env.BUILD_SOURCEBRANCH}`);
+        //     return resolve(undefined);
+        // }
+        // if (process.env.VSCODE_QUALITY !== 'insider' && process.env.VSCODE_QUALITY !== 'stable') {
+        //     console.log(`Only runs on insider and stable qualities, not ${process.env.VSCODE_QUALITY}`);
+        //     return resolve(undefined);
+        // }
         const result = path.join(os.tmpdir(), 'configuration.json');
         const userDataDir = path.join(os.tmpdir(), 'tmpuserdata');
         const extensionsDir = path.join(os.tmpdir(), 'tmpextdir');
