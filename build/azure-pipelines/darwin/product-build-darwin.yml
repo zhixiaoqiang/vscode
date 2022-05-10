@@ -193,7 +193,7 @@ steps:
       VSCODE_ARCH="$(VSCODE_ARCH)" \
         node build/azure-pipelines/upload-configuration
     displayName: Upload configuration (for Bing settings search)
-    condition: and(succeeded(), eq(variables['VSCODE_ARCH'], 'x64'), ne(variables['VSCODE_PUBLISH'], 'false'))
+    condition: and(succeeded(), eq(variables['VSCODE_ARCH'], 'x64'))
     continueOnError: true
 
   - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0

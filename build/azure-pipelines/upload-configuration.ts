@@ -8,13 +8,13 @@
 import * as path from 'path';
 import * as os from 'os';
 import * as cp from 'child_process';
-import * as vfs from 'vinyl-fs';
+//import * as vfs from 'vinyl-fs';
 import * as util from '../lib/util';
-import { ClientSecretCredential } from '@azure/identity';
-const azure = require('gulp-azure-storage');
+//import { ClientSecretCredential } from '@azure/identity';
+//const azure = require('gulp-azure-storage');
 import * as packageJson from '../../package.json';
 
-const commit = process.env['VSCODE_DISTRO_COMMIT'] || process.env['BUILD_SOURCEVERSION'];
+//const commit = process.env['VSCODE_DISTRO_COMMIT'] || process.env['BUILD_SOURCEVERSION'];
 
 function generateVSCodeConfigurationTask(): Promise<string | undefined> {
 	return new Promise((resolve, reject) => {
@@ -108,7 +108,7 @@ async function main(): Promise<void> {
 		throw new Error('Failed to compute build number');
 	}
 
-	const credential = new ClientSecretCredential(process.env['AZURE_TENANT_ID']!, process.env['AZURE_CLIENT_ID']!, process.env['AZURE_CLIENT_SECRET']!);
+	/*const credential = new ClientSecretCredential(process.env['AZURE_TENANT_ID']!, process.env['AZURE_CLIENT_ID']!, process.env['AZURE_CLIENT_SECRET']!);
 
 	return new Promise((c, e) => {
 		vfs.src(configPath)
@@ -120,7 +120,8 @@ async function main(): Promise<void> {
 			}))
 			.on('end', () => c())
 			.on('error', (err: any) => e(err));
-	});
+	});*/
+	return new Promise((c) => c());
 }
 
 if (require.main === module) {

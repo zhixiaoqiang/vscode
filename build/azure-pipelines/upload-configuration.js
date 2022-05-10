@@ -8,12 +8,12 @@ exports.getSettingsSearchBuildId = exports.shouldSetupSettingsSearch = void 0;
 const path = require("path");
 const os = require("os");
 const cp = require("child_process");
-const vfs = require("vinyl-fs");
+//import * as vfs from 'vinyl-fs';
 const util = require("../lib/util");
-const identity_1 = require("@azure/identity");
-const azure = require('gulp-azure-storage');
+//import { ClientSecretCredential } from '@azure/identity';
+//const azure = require('gulp-azure-storage');
 const packageJson = require("../../package.json");
-const commit = process.env['VSCODE_DISTRO_COMMIT'] || process.env['BUILD_SOURCEVERSION'];
+//const commit = process.env['VSCODE_DISTRO_COMMIT'] || process.env['BUILD_SOURCEVERSION'];
 function generateVSCodeConfigurationTask() {
     return new Promise((resolve, reject) => {
         const buildDir = process.env['AGENT_BUILDDIRECTORY'];
@@ -90,18 +90,20 @@ async function main() {
     if (!settingsSearchBuildId) {
         throw new Error('Failed to compute build number');
     }
-    const credential = new identity_1.ClientSecretCredential(process.env['AZURE_TENANT_ID'], process.env['AZURE_CLIENT_ID'], process.env['AZURE_CLIENT_SECRET']);
+    /*const credential = new ClientSecretCredential(process.env['AZURE_TENANT_ID']!, process.env['AZURE_CLIENT_ID']!, process.env['AZURE_CLIENT_SECRET']!);
+
     return new Promise((c, e) => {
         vfs.src(configPath)
             .pipe(azure.upload({
-            account: process.env.AZURE_STORAGE_ACCOUNT,
-            credential,
-            container: 'configuration',
-            prefix: `${settingsSearchBuildId}/${commit}/`
-        }))
+                account: process.env.AZURE_STORAGE_ACCOUNT,
+                credential,
+                container: 'configuration',
+                prefix: `${settingsSearchBuildId}/${commit}/`
+            }))
             .on('end', () => c())
-            .on('error', (err) => e(err));
-    });
+            .on('error', (err: any) => e(err));
+    });*/
+    return new Promise((c) => c());
 }
 if (require.main === module) {
     main().catch(err => {
