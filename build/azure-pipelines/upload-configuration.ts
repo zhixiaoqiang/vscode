@@ -23,15 +23,15 @@ function generateVSCodeConfigurationTask(): Promise<string | undefined> {
 			return reject(new Error('$AGENT_BUILDDIRECTORY not set'));
 		}
 
-		if (!shouldSetupSettingsSearch()) {
-			console.log(`Only runs on main and release branches, not ${process.env.BUILD_SOURCEBRANCH}`);
-			return resolve(undefined);
-		}
+		// if (!shouldSetupSettingsSearch()) {
+		// 	console.log(`Only runs on main and release branches, not ${process.env.BUILD_SOURCEBRANCH}`);
+		// 	return resolve(undefined);
+		// }
 
-		if (process.env.VSCODE_QUALITY !== 'insider' && process.env.VSCODE_QUALITY !== 'stable') {
-			console.log(`Only runs on insider and stable qualities, not ${process.env.VSCODE_QUALITY}`);
-			return resolve(undefined);
-		}
+		// if (process.env.VSCODE_QUALITY !== 'insider' && process.env.VSCODE_QUALITY !== 'stable') {
+		// 	console.log(`Only runs on insider and stable qualities, not ${process.env.VSCODE_QUALITY}`);
+		// 	return resolve(undefined);
+		// }
 
 		const result = path.join(os.tmpdir(), 'configuration.json');
 		const userDataDir = path.join(os.tmpdir(), 'tmpuserdata');
@@ -63,7 +63,7 @@ function generateVSCodeConfigurationTask(): Promise<string | undefined> {
 		const timer = setTimeout(() => {
 			codeProc.kill();
 			reject(new Error('export-default-configuration process timed out'));
-		}, 20 * 1000);
+		}, 45 * 1000);
 
 		codeProc.on('error', err => {
 			clearTimeout(timer);
