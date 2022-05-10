@@ -6,6 +6,7 @@
 import { URI } from 'vs/base/common/uri';
 import { IDataTransfer, IDataTransferItem } from 'vs/editor/common/dnd';
 
+
 export function toIDataTransfer(dataTransfer: DataTransfer) {
 	const textEditorDataTransfer: IDataTransfer = new Map<string, IDataTransferItem>();
 	for (const item of dataTransfer.items) {
@@ -18,7 +19,7 @@ export function toIDataTransfer(dataTransfer: DataTransfer) {
 				value: undefined
 			});
 		} else if (item.kind === 'file') {
-			const file = item.getAsFile();
+			const file = item.getAsFile() as null | (File & { path?: string });
 			if (file) {
 				textEditorDataTransfer.set(type, {
 					asString: () => Promise.resolve(''),
