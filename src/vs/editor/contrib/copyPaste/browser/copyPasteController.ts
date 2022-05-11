@@ -45,7 +45,9 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 
 		this._editor = editor;
 
-		this._register(addDisposableListener(document, 'copy', (e: ClipboardEvent) => {
+		const container = editor.getContainerDomNode();
+
+		this._register(addDisposableListener(container, 'copy', (e: ClipboardEvent) => {
 			if (!e.clipboardData) {
 				return;
 			}
@@ -81,10 +83,11 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 				return dataTransfer;
 			});
 
+			this._currentClipboardItem?.dataTransferPromise.cancel();
 			this._currentClipboardItem = { handle: handle, dataTransferPromise: promise };
 		}));
 
-		this._register(addDisposableListener(document, 'paste', async (e: ClipboardEvent) => {
+		this._register(addDisposableListener(container, 'paste', async (e: ClipboardEvent) => {
 			const model = editor.getModel();
 			const selection = this._editor.getSelection();
 			if (!model || !selection || !e.clipboardData) {
