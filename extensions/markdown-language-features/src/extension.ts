@@ -27,6 +27,7 @@ import { ContentSecurityPolicyArbiter, ExtensionContentSecurityPolicyArbiter, Pr
 import { githubSlugifier } from './slugify';
 import { loadDefaultTelemetryReporter, TelemetryReporter } from './telemetryReporter';
 import { VsCodeMdWorkspaceContents } from './workspaceContents';
+import { registerCopyPaste } from './languageFeatures/copyPaste';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -53,45 +54,6 @@ export function activate(context: vscode.ExtensionContext) {
 		logger.updateConfiguration();
 		previewManager.updateConfiguration();
 	}));
-
-	// Example copy paste provider that includes the number of times
-	// you've copied something in the pasted text.
-
-	let copyCount = 0;
-
-	vscode.languages.registerDocumentCopyPasteEditProvider({ language: 'markdown', }, new class implements vscode.DocumentCopyPasteEditProvider {
-
-		private readonly mime = 'x-markdown-test';
-
-		async provideCopyData(
-			_document: vscode.TextDocument,
-			_selection: vscode.Selection,
-			dataTransfer: vscode.DataTransfer,
-			_token: vscode.CancellationToken,
-		): Promise<void> {
-			dataTransfer.set(this.mime, new vscode.DataTransferItem(copyCount++));
-		}
-
-		async providePasteDocumentEdits(
-			document: vscode.TextDocument,
-			selection: vscode.Selection,
-			dataTransfer: vscode.DataTransfer,
-			_token: vscode.CancellationToken,
-		): Promise<vscode.WorkspaceEdit | undefined> {
-			// Add fake delay for testing
-			await new Promise(resolve => setTimeout(resolve, 100));
-
-			const edit = new vscode.WorkspaceEdit();
-
-			const count = await dataTransfer.get(this.mime)?.asString();
-			const text = await dataTransfer.get('text/plain')?.asString();
-
-			const newText = `(copy #${count}) ${text}`;
-			edit.replace(document.uri, selection, newText);
-
-			return edit;
-		}
-	});
 }
 
 function registerMarkdownLanguageFeatures(
@@ -117,6 +79,7 @@ function registerMarkdownLanguageFeatures(
 		MdPathCompletionProvider.register(selector, engine, linkProvider),
 		registerDiagnostics(engine, workspaceContents, linkProvider),
 		registerDropIntoEditor(selector),
+		registerCopyPaste(selector),
 		registerFindFileReferences(commandManager, referencesProvider),
 	);
 }

@@ -7,13 +7,15 @@ import { addDisposableListener } from 'vs/base/browser/dom';
 import { CancelablePromise, createCancelablePromise } from 'vs/base/common/async';
 import { CancellationToken } from 'vs/base/common/cancellation';
 import { Disposable } from 'vs/base/common/lifecycle';
+import { Mimes } from 'vs/base/common/mime';
 import { generateUuid } from 'vs/base/common/uuid';
 import { toIDataTransfer } from 'vs/editor/browser/dnd';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
-import { IBulkEditService, ResourceEdit } from 'vs/editor/browser/services/bulkEditService';
+import { IBulkEditService, ResourceEdit, ResourceTextEdit } from 'vs/editor/browser/services/bulkEditService';
 import { IDataTransfer } from 'vs/editor/common/dnd';
 import { IEditorContribution } from 'vs/editor/common/editorCommon';
 import { ILanguageFeaturesService } from 'vs/editor/common/services/languageFeatures';
+import { IClipboardService } from 'vs/platform/clipboard/common/clipboardService';
 
 
 const vscodeClipboardMime = 'x-vscode/id';
@@ -36,6 +38,7 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 	constructor(
 		editor: ICodeEditor,
 		@IBulkEditService private readonly _bulkEditService: IBulkEditService,
+		@IClipboardService private readonly _clipboardService: IClipboardService,
 		@ILanguageFeaturesService private readonly _languageFeaturesService: ILanguageFeaturesService,
 	) {
 		super();
@@ -88,6 +91,8 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 				return;
 			}
 
+			const version = model.getVersionId();
+
 			const providers = this._languageFeaturesService.copyPasteActionProvider.ordered(model);
 			if (!providers.length) {
 				return;
@@ -110,6 +115,18 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 				});
 			}
 
+			if (!dataTransfer.has(Mimes.uriList)) {
+				const resources = await this._clipboardService.readResources();
+				if (resources.length) {
+					const value = resources.join('\n');
+					dataTransfer.set(Mimes.uriList, {
+						value,
+						asString: async () => value,
+						asFile: () => undefined,
+					});
+				}
+			}
+
 			dataTransfer.delete(vscodeClipboardMime);
 
 			for (const provider of providers) {
@@ -119,6 +136,10 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 					return;
 				}
 			}
+
+			// Default copy paste
+			const text = await dataTransfer.get(Mimes.text)!.asString();
+			await this._bulkEditService.apply([new ResourceTextEdit(model.uri, { range: selection, text }, version)], { editor });
 		}, true));
 	}
 }
