@@ -5,21 +5,12 @@
 
 declare module 'vscode' {
 
-	// https://github.com/microsoft/vscode/issues/30066
-
-	/**
-	 * TODOs:
-	 * - Multiple providers?
-	 * - Is the document already edited in onWillPaste?
-	 * - Does `onWillPaste` need to re-implement basic paste
-	 *
-	 * - Figure out CopyPasteActionProviderMetadata
-	 */
+	// https://github.com/microsoft/vscode/issues/30066/
 
 	/**
 	 * Provider invoked when the user copies and pastes code.
 	 */
-	interface DocumentCopyPasteEditProvider {
+	interface DocumentPasteEditProvider {
 
 		/**
 		 * Optional method invoked after the user copies text in a file.
@@ -31,7 +22,7 @@ declare module 'vscode' {
 		 * @param selection Selection being copied in the `document`.
 		 * @param token
 		 */
-		provideCopyData?(document: TextDocument, selection: Selection, dataTransfer: DataTransfer, token: CancellationToken): void | Thenable<void>;
+		prepareDocumentPaste?(document: TextDocument, selection: Selection, dataTransfer: DataTransfer, token: CancellationToken): void | Thenable<void>;
 
 		/**
 		 * Invoked before the user pastes into a document.
@@ -45,10 +36,10 @@ declare module 'vscode' {
 		 *
 		 * @return Optional workspace edit that applies the paste. Return undefined to use standard pasting.
 		 */
-		providePasteDocumentEdits(document: TextDocument, selection: Selection, dataTransfer: DataTransfer, token: CancellationToken): ProviderResult<WorkspaceEdit>;
+		provideDocumentPasteEdits(document: TextDocument, selection: Selection, dataTransfer: DataTransfer, token: CancellationToken): ProviderResult<WorkspaceEdit>;
 	}
 
 	namespace languages {
-		export function registerDocumentCopyPasteEditProvider(selector: DocumentSelector, provider: DocumentCopyPasteEditProvider): Disposable;
+		export function registerDocumentPasteEditProvider(selector: DocumentSelector, provider: DocumentPasteEditProvider): Disposable;
 	}
 }

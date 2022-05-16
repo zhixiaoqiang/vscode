@@ -6,8 +6,9 @@
 import * as vscode from 'vscode';
 import { CommandManager } from './commandManager';
 import * as commands from './commands/index';
-import { register as registerDiagnostics } from './languageFeatures/diagnostics';
+import { registerPasteProvider } from './languageFeatures/copyPaste';
 import { MdDefinitionProvider } from './languageFeatures/definitionProvider';
+import { register as registerDiagnostics } from './languageFeatures/diagnostics';
 import { MdLinkProvider } from './languageFeatures/documentLinkProvider';
 import { MdDocumentSymbolProvider } from './languageFeatures/documentSymbolProvider';
 import { registerDropIntoEditor } from './languageFeatures/dropIntoEditor';
@@ -27,7 +28,6 @@ import { ContentSecurityPolicyArbiter, ExtensionContentSecurityPolicyArbiter, Pr
 import { githubSlugifier } from './slugify';
 import { loadDefaultTelemetryReporter, TelemetryReporter } from './telemetryReporter';
 import { VsCodeMdWorkspaceContents } from './workspaceContents';
-import { registerCopyPaste } from './languageFeatures/copyPaste';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -79,7 +79,7 @@ function registerMarkdownLanguageFeatures(
 		MdPathCompletionProvider.register(selector, engine, linkProvider),
 		registerDiagnostics(engine, workspaceContents, linkProvider),
 		registerDropIntoEditor(selector),
-		registerCopyPaste(selector),
+		registerPasteProvider(selector),
 		registerFindFileReferences(commandManager, referencesProvider),
 	);
 }

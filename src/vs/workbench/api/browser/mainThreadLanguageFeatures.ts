@@ -368,7 +368,7 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 
 	// --- copy paste action provider
 
-	$registerCopyPasteActionProvider(handle: number, selector: IDocumentFilterDto[], id: string, supportsCopy: boolean): void {
+	$registerPasteEditProvider(handle: number, selector: IDocumentFilterDto[], id: string, supportsCopy: boolean): void {
 		const provider: languages.CopyPasteActionProvider = {
 			provideCopyData: supportsCopy
 				? async (model: ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<IDataTransfer | undefined> => {
@@ -377,7 +377,7 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 						return undefined;
 					}
 
-					const result = await this._proxy.$provideCopyData(handle, model.uri, selection, dataTransferDto, token);
+					const result = await this._proxy.$prepareDocumentPaste(handle, model.uri, selection, dataTransferDto, token);
 					if (!result) {
 						return undefined;
 					}

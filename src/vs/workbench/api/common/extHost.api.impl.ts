@@ -458,8 +458,8 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			registerCodeActionsProvider(selector: vscode.DocumentSelector, provider: vscode.CodeActionProvider, metadata?: vscode.CodeActionProviderMetadata): vscode.Disposable {
 				return extHostLanguageFeatures.registerCodeActionProvider(extension, checkSelector(selector), provider, metadata);
 			},
-			registerDocumentCopyPasteEditProvider(selector: vscode.DocumentSelector, provider: vscode.DocumentCopyPasteEditProvider): vscode.Disposable {
-				return extHostLanguageFeatures.registerCopyPasteActionProvider(extension, checkSelector(selector), provider);
+			registerDocumentPasteEditProvider(selector: vscode.DocumentSelector, provider: vscode.DocumentPasteEditProvider): vscode.Disposable {
+				return extHostLanguageFeatures.registerDocumentPasteEditProvider(extension, checkSelector(selector), provider);
 			},
 			registerCodeLensProvider(selector: vscode.DocumentSelector, provider: vscode.CodeLensProvider): vscode.Disposable {
 				return extHostLanguageFeatures.registerCodeLensProvider(extension, checkSelector(selector), provider);

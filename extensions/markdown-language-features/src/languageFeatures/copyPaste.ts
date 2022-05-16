@@ -6,10 +6,10 @@
 import * as vscode from 'vscode';
 import { tryInsertUriList } from './dropIntoEditor';
 
-export function registerCopyPaste(selector: vscode.DocumentSelector) {
-	return vscode.languages.registerDocumentCopyPasteEditProvider(selector, new class implements vscode.DocumentCopyPasteEditProvider {
+export function registerPasteProvider(selector: vscode.DocumentSelector) {
+	return vscode.languages.registerDocumentPasteEditProvider(selector, new class implements vscode.DocumentPasteEditProvider {
 
-		async providePasteDocumentEdits(
+		async provideDocumentPasteEdits(
 			document: vscode.TextDocument,
 			selection: vscode.Selection,
 			dataTransfer: vscode.DataTransfer,
