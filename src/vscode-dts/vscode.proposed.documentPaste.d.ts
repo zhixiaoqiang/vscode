@@ -31,13 +31,13 @@ declare module 'vscode' {
 		 * In this method, extensions can return a workspace edit that replaces the standard pasting behavior.
 		 *
 		 * @param document Document being pasted into
-		 * @param selection Current selection in the document.
+		 * @param range Currently selected range in the document.
 		 * @param dataTransfer The data transfer associated with the paste.
 		 * @param token A cancellation token.
 		 *
 		 * @return Optional workspace edit that applies the paste. Return undefined to use standard pasting.
 		 */
-		provideDocumentPasteEdits(document: TextDocument, range: Range, dataTransfer: DataTransfer, token: CancellationToken): ProviderResult<WorkspaceEdit>;
+		provideDocumentPasteEdits(document: TextDocument, range: Range, dataTransfer: DataTransfer, token: CancellationToken): ProviderResult<WorkspaceEdit | SnippetTextEdit>;
 	}
 
 	namespace languages {
