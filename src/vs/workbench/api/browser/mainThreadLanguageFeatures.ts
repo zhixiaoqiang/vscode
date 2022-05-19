@@ -29,7 +29,7 @@ import * as callh from 'vs/workbench/contrib/callHierarchy/common/callHierarchy'
 import * as search from 'vs/workbench/contrib/search/common/search';
 import * as typeh from 'vs/workbench/contrib/typeHierarchy/common/typeHierarchy';
 import { extHostNamedCustomer, IExtHostContext } from 'vs/workbench/services/extensions/common/extHostCustomers';
-import { ExtHostContext, ExtHostLanguageFeaturesShape, ICallHierarchyItemDto, ICodeActionDto, ICodeActionProviderMetadataDto, IdentifiableInlineCompletion, IdentifiableInlineCompletions, IDocumentFilterDto, IIndentationRuleDto, IInlayHintDto, ILanguageConfigurationDto, ILanguageWordDefinitionDto, ILinkDto, ILocationDto, ILocationLinkDto, IOnEnterRuleDto, IRegExpDto, ISignatureHelpProviderMetadataDto, ISuggestDataDto, ISuggestDataDtoField, ISuggestResultDtoField, ITypeHierarchyItemDto, IWorkspaceSymbolDto, MainContext, MainThreadLanguageFeaturesShape, reviveWorkspaceEditDto } from '../common/extHost.protocol';
+import { ExtHostContext, ExtHostLanguageFeaturesShape, ICallHierarchyItemDto, ICodeActionDto, ICodeActionProviderMetadataDto, IdentifiableInlineCompletion, IdentifiableInlineCompletions, IDocumentFilterDto, IIndentationRuleDto, IInlayHintDto, ILanguageConfigurationDto, ILanguageWordDefinitionDto, ILinkDto, ILocationDto, ILocationLinkDto, IOnEnterRuleDto, IRegExpDto, ISignatureHelpProviderMetadataDto, ISuggestDataDto, ISuggestDataDtoField, ISuggestResultDtoField, ITypeHierarchyItemDto, IWorkspaceEditDto, IWorkspaceSymbolDto, MainContext, MainThreadLanguageFeaturesShape, reviveWorkspaceEditDto } from '../common/extHost.protocol';
 import { IDataTransfer } from 'vs/editor/common/dnd';
 
 @extHostNamedCustomer(MainContext.MainThreadLanguageFeatures)
@@ -389,7 +389,13 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 			provideDocumentPasteEdits: async (model: ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken) => {
 				const d = await DataTransferConverter.toDataTransferDTO(dataTransfer);
 				const result = await this._proxy.$providePasteEdits(handle, model.uri, selection, d, token);
-				return result && reviveWorkspaceEditDto(result);
+				if (!result) {
+					return;
+				} else if ((result as IWorkspaceEditDto).edits) {
+					return reviveWorkspaceEditDto(result as IWorkspaceEditDto);
+				} else {
+					return result as languages.SnippetTextEdit;
+				}
 			}
 		};
 

@@ -7,7 +7,7 @@ import { URI, UriComponents } from 'vs/base/common/uri';
 import { mixin } from 'vs/base/common/objects';
 import type * as vscode from 'vscode';
 import * as typeConvert from 'vs/workbench/api/common/extHostTypeConverters';
-import { Range, Disposable, CompletionList, SnippetString, CodeActionKind, SymbolInformation, DocumentSymbol, SemanticTokensEdits, SemanticTokens, SemanticTokensEdit, Location, InlineCompletionTriggerKindNew, InlineCompletionTriggerKind } from 'vs/workbench/api/common/extHostTypes';
+import { Range, Disposable, CompletionList, SnippetString, CodeActionKind, SymbolInformation, DocumentSymbol, SemanticTokensEdits, SemanticTokens, SemanticTokensEdit, Location, InlineCompletionTriggerKindNew, InlineCompletionTriggerKind, WorkspaceEdit } from 'vs/workbench/api/common/extHostTypes';
 import { ISingleEditOperation } from 'vs/editor/common/core/editOperation';
 import * as languages from 'vs/editor/common/languages';
 import { ExtHostDocuments } from 'vs/workbench/api/common/extHostDocuments';
@@ -511,7 +511,7 @@ class DocumentPasteEditProvider {
 		return DataTransferConverter.toDataTransferDTO(dataTransfer);
 	}
 
-	async providePasteEdits(requestId: number, resource: URI, range: IRange, dataTransferDto: DataTransferDTO, token: CancellationToken): Promise<undefined | extHostProtocol.IWorkspaceEditDto> {
+	async providePasteEdits(requestId: number, resource: URI, range: IRange, dataTransferDto: DataTransferDTO, token: CancellationToken): Promise<undefined | extHostProtocol.IWorkspaceEditDto | Dto<languages.SnippetTextEdit>> {
 		const doc = this._documents.getDocument(resource);
 		const vscodeRange = typeConvert.Range.to(range);
 
@@ -519,12 +519,16 @@ class DocumentPasteEditProvider {
 			return (await this._proxy.$resolveDocumentOnDropFileData(this._handle, requestId, index)).buffer;
 		});
 
-		const result = await this._provider.provideDocumentPasteEdits(doc, vscodeRange, dataTransfer, token);
-		if (!result) {
+		const edit = await this._provider.provideDocumentPasteEdits(doc, vscodeRange, dataTransfer, token);
+		if (!edit) {
 			return;
 		}
 
-		return typeConvert.WorkspaceEdit.from(result);
+		if (edit instanceof WorkspaceEdit) {
+			return typeConvert.WorkspaceEdit.from(edit);
+		} else {
+			return typeConvert.SnippetTextEdit.from(edit as vscode.SnippetTextEdit);
+		}
 	}
 }
 
@@ -2469,7 +2473,7 @@ export class ExtHostLanguageFeatures implements extHostProtocol.ExtHostLanguageF
 		return this._withAdapter(handle, DocumentPasteEditProvider, adapter => adapter.prepareDocumentPaste(URI.revive(resource), range, dataTransfer, token), undefined, token);
 	}
 
-	$providePasteEdits(handle: number, resource: UriComponents, range: IRange, dataTransferDto: DataTransferDTO, token: CancellationToken): Promise<extHostProtocol.IWorkspaceEditDto | undefined> {
+	$providePasteEdits(handle: number, resource: UriComponents, range: IRange, dataTransferDto: DataTransferDTO, token: CancellationToken): Promise<extHostProtocol.IWorkspaceEditDto | Dto<languages.SnippetTextEdit> | undefined> {
 		return this._withAdapter(handle, DocumentPasteEditProvider, adapter => adapter.providePasteEdits(0, URI.revive(resource), range, dataTransferDto, token), undefined, token);
 	}
 

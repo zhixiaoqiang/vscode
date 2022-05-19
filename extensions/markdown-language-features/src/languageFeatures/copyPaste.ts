@@ -14,20 +14,13 @@ export function registerPasteProvider(selector: vscode.DocumentSelector) {
 			range: vscode.Range,
 			dataTransfer: vscode.DataTransfer,
 			token: vscode.CancellationToken,
-		): Promise<vscode.WorkspaceEdit | undefined> {
+		): Promise<vscode.SnippetTextEdit | undefined> {
 			const enabled = vscode.workspace.getConfiguration('markdown', document).get('experimental.editor.pasteLinks.enabled', false);
 			if (!enabled) {
 				return;
 			}
 
-			const snippet = await tryInsertUriList(document, range, dataTransfer, token);
-			if (!snippet) {
-				return;
-			}
-
-			const edit = new vscode.WorkspaceEdit();
-			edit.replace(document.uri, range, snippet.snippet.value);
-			return edit;
+			return tryInsertUriList(document, range, dataTransfer, token);
 		}
 	});
 }

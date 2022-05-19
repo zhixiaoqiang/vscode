@@ -15,9 +15,10 @@ import { IBulkEditService, ResourceEdit, ResourceTextEdit } from 'vs/editor/brow
 import { Selection } from 'vs/editor/common/core/selection';
 import { IDataTransfer } from 'vs/editor/common/dnd';
 import { IEditorContribution } from 'vs/editor/common/editorCommon';
-import { DocumentPasteEditProvider, WorkspaceEdit } from 'vs/editor/common/languages';
+import { DocumentPasteEditProvider, SnippetTextEdit, WorkspaceEdit } from 'vs/editor/common/languages';
 import { ITextModel } from 'vs/editor/common/model';
 import { ILanguageFeaturesService } from 'vs/editor/common/services/languageFeatures';
+import { performSnippetEdit } from 'vs/editor/contrib/snippet/browser/snippetController2';
 import { IClipboardService } from 'vs/platform/clipboard/common/clipboardService';
 
 
@@ -159,7 +160,11 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 				}
 
 				if (edit) {
-					await this._bulkEditService.apply(ResourceEdit.convert(edit), { editor });
+					if ((edit as WorkspaceEdit).edits) {
+						await this._bulkEditService.apply(ResourceEdit.convert(edit as WorkspaceEdit), { editor });
+					} else {
+						performSnippetEdit(editor, edit as SnippetTextEdit);
+					}
 					return;
 				}
 			}

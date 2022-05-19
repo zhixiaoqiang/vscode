@@ -922,7 +922,7 @@ export interface CodeActionProvider {
 export interface DocumentPasteEditProvider {
 	prepareDocumentPaste?(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<undefined | IDataTransfer>;
 
-	provideDocumentPasteEdits(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<WorkspaceEdit | undefined>;
+	provideDocumentPasteEdits(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<WorkspaceEdit | SnippetTextEdit | undefined>;
 }
 
 /**
