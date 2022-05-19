@@ -12,13 +12,31 @@ import { generateUuid } from 'vs/base/common/uuid';
 import { toIDataTransfer } from 'vs/editor/browser/dnd';
 import { ICodeEditor } from 'vs/editor/browser/editorBrowser';
 import { IBulkEditService, ResourceEdit, ResourceTextEdit } from 'vs/editor/browser/services/bulkEditService';
+import { Selection } from 'vs/editor/common/core/selection';
 import { IDataTransfer } from 'vs/editor/common/dnd';
 import { IEditorContribution } from 'vs/editor/common/editorCommon';
+import { DocumentPasteEditProvider, WorkspaceEdit } from 'vs/editor/common/languages';
+import { ITextModel } from 'vs/editor/common/model';
 import { ILanguageFeaturesService } from 'vs/editor/common/services/languageFeatures';
 import { IClipboardService } from 'vs/platform/clipboard/common/clipboardService';
 
 
 const vscodeClipboardMime = 'x-vscode/id';
+
+class DefaultPasteEditProvider implements DocumentPasteEditProvider {
+
+	async provideDocumentPasteEdits(model: ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<WorkspaceEdit | undefined> {
+		const textDataTransfer = dataTransfer.get(Mimes.text) ?? dataTransfer.get('text');
+		if (textDataTransfer) {
+			const text = await textDataTransfer.asString();
+			return {
+				edits: [new ResourceTextEdit(model.uri, { range: selection, text })]
+			};
+		}
+
+		return undefined;
+	}
+}
 
 export class CopyPasteController extends Disposable implements IEditorContribution {
 
@@ -45,6 +63,8 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 
 		this._editor = editor;
 
+		this._languageFeaturesService.documentPasteEditProvider.register('*', new DefaultPasteEditProvider());
+
 		const container = editor.getContainerDomNode();
 
 		this._register(addDisposableListener(container, 'copy', (e: ClipboardEvent) => {
@@ -58,7 +78,7 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 				return;
 			}
 
-			const providers = this._languageFeaturesService.copyPasteActionProvider.ordered(model).filter(x => !!x.provideCopyData);
+			const providers = this._languageFeaturesService.documentPasteEditProvider.ordered(model).filter(x => !!x.prepareDocumentPaste);
 			if (!providers.length) {
 				return;
 			}
@@ -71,7 +91,7 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 
 			const promise = createCancelablePromise(async token => {
 				const results = await Promise.all(providers.map(provider => {
-					return provider.provideCopyData!(model, selection, dataTransfer, token);
+					return provider.prepareDocumentPaste!(model, selection, dataTransfer, token);
 				}));
 
 				for (const result of results) {
@@ -94,9 +114,9 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 				return;
 			}
 
-			const version = model.getVersionId();
+			const originalDocVersion = model.getVersionId();
 
-			const providers = this._languageFeaturesService.copyPasteActionProvider.ordered(model);
+			const providers = this._languageFeaturesService.documentPasteEditProvider.ordered(model);
 			if (!providers.length) {
 				return;
 			}
@@ -133,16 +153,16 @@ export class CopyPasteController extends Disposable implements IEditorContributi
 			dataTransfer.delete(vscodeClipboardMime);
 
 			for (const provider of providers) {
-				const edit = await provider.providePasteEdits(model, selection, dataTransfer, CancellationToken.None);
+				const edit = await provider.provideDocumentPasteEdits(model, selection, dataTransfer, CancellationToken.None);
+				if (originalDocVersion !== model.getVersionId()) {
+					return;
+				}
+
 				if (edit) {
 					await this._bulkEditService.apply(ResourceEdit.convert(edit), { editor });
 					return;
 				}
 			}
-
-			// Default copy paste
-			const text = await dataTransfer.get(Mimes.text)!.asString();
-			await this._bulkEditService.apply([new ResourceTextEdit(model.uri, { range: selection, text }, version)], { editor });
 		}, true));
 	}
 }

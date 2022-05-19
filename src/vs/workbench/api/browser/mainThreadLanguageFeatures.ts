@@ -369,8 +369,8 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 	// --- copy paste action provider
 
 	$registerPasteEditProvider(handle: number, selector: IDocumentFilterDto[], id: string, supportsCopy: boolean): void {
-		const provider: languages.CopyPasteActionProvider = {
-			provideCopyData: supportsCopy
+		const provider: languages.DocumentPasteEditProvider = {
+			prepareDocumentPaste: supportsCopy
 				? async (model: ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<IDataTransfer | undefined> => {
 					const dataTransferDto = await DataTransferConverter.toDataTransferDTO(dataTransfer);
 					if (token.isCancellationRequested) {
@@ -386,14 +386,14 @@ export class MainThreadLanguageFeatures extends Disposable implements MainThread
 				}
 				: undefined,
 
-			providePasteEdits: async (model: ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken) => {
+			provideDocumentPasteEdits: async (model: ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken) => {
 				const d = await DataTransferConverter.toDataTransferDTO(dataTransfer);
 				const result = await this._proxy.$providePasteEdits(handle, model.uri, selection, d, token);
 				return result && reviveWorkspaceEditDto(result);
 			}
 		};
 
-		this._registrations.set(handle, this._languageFeaturesService.copyPasteActionProvider.register(selector, provider));
+		this._registrations.set(handle, this._languageFeaturesService.documentPasteEditProvider.register(selector, provider));
 	}
 
 	// --- formatting

@@ -919,10 +919,10 @@ export interface CodeActionProvider {
 /**
  * @internal
  */
-export interface CopyPasteActionProvider {
-	provideCopyData?(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<undefined | IDataTransfer>;
+export interface DocumentPasteEditProvider {
+	prepareDocumentPaste?(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<undefined | IDataTransfer>;
 
-	providePasteEdits(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<WorkspaceEdit | undefined>;
+	provideDocumentPasteEdits(model: model.ITextModel, selection: Selection, dataTransfer: IDataTransfer, token: CancellationToken): Promise<WorkspaceEdit | undefined>;
 }
 
 /**

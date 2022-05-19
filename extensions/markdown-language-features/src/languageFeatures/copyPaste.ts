@@ -11,17 +11,22 @@ export function registerPasteProvider(selector: vscode.DocumentSelector) {
 
 		async provideDocumentPasteEdits(
 			document: vscode.TextDocument,
-			selection: vscode.Selection,
+			range: vscode.Range,
 			dataTransfer: vscode.DataTransfer,
 			token: vscode.CancellationToken,
 		): Promise<vscode.WorkspaceEdit | undefined> {
-			const snippet = await tryInsertUriList(document, selection, dataTransfer, token);
+			const enabled = vscode.workspace.getConfiguration('markdown', document).get('experimental.editor.pasteLinks.enabled', false);
+			if (!enabled) {
+				return;
+			}
+
+			const snippet = await tryInsertUriList(document, range, dataTransfer, token);
 			if (!snippet) {
 				return;
 			}
 
 			const edit = new vscode.WorkspaceEdit();
-			edit.replace(document.uri, selection, snippet.snippet.value);
+			edit.replace(document.uri, range, snippet.snippet.value);
 			return edit;
 		}
 	});

@@ -15,14 +15,15 @@ declare module 'vscode' {
 		/**
 		 * Optional method invoked after the user copies text in a file.
 		 *
-		 * During `provideCopyData`, an extension can compute metadata that is attached to
-		 * the clipboard and is passed back to the provider in `providePasteDocument`.
+		 * During {@link prepareDocumentPaste}, an extension can compute metadata that is attached to
+		 * a {@link DataTransfer} and is passed back to the provider in {@link provideDocumentPasteEdits}.
 		 *
 		 * @param document Document where the copy took place.
-		 * @param selection Selection being copied in the `document`.
-		 * @param token
+		 * @param range Range being copied in the `document`.
+		 * @param dataTransfer The data transfer associated with the copy. You can store additional values on this for later use in  {@link provideDocumentPasteEdits}.
+		 * @param token A cancellation token.
 		 */
-		prepareDocumentPaste?(document: TextDocument, selection: Selection, dataTransfer: DataTransfer, token: CancellationToken): void | Thenable<void>;
+		prepareDocumentPaste?(document: TextDocument, range: Range, dataTransfer: DataTransfer, token: CancellationToken): void | Thenable<void>;
 
 		/**
 		 * Invoked before the user pastes into a document.
@@ -31,12 +32,12 @@ declare module 'vscode' {
 		 *
 		 * @param document Document being pasted into
 		 * @param selection Current selection in the document.
-		 * @param dataTransfer
-		 * @param token
+		 * @param dataTransfer The data transfer associated with the paste.
+		 * @param token A cancellation token.
 		 *
 		 * @return Optional workspace edit that applies the paste. Return undefined to use standard pasting.
 		 */
-		provideDocumentPasteEdits(document: TextDocument, selection: Selection, dataTransfer: DataTransfer, token: CancellationToken): ProviderResult<WorkspaceEdit>;
+		provideDocumentPasteEdits(document: TextDocument, range: Range, dataTransfer: DataTransfer, token: CancellationToken): ProviderResult<WorkspaceEdit>;
 	}
 
 	namespace languages {

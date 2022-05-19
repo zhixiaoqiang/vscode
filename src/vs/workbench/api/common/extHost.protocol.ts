@@ -1722,8 +1722,8 @@ export interface ExtHostLanguageFeaturesShape {
 	$provideCodeActions(handle: number, resource: UriComponents, rangeOrSelection: IRange | ISelection, context: languages.CodeActionContext, token: CancellationToken): Promise<ICodeActionListDto | undefined>;
 	$resolveCodeAction(handle: number, id: ChainedCacheId, token: CancellationToken): Promise<IWorkspaceEditDto | undefined>;
 	$releaseCodeActions(handle: number, cacheId: number): void;
-	$prepareDocumentPaste(handle: number, uri: UriComponents, selection: ISelection, dataTransfer: DataTransferDTO, token: CancellationToken): Promise<DataTransferDTO | undefined>;
-	$providePasteEdits(handle: number, uri: UriComponents, selection: ISelection, dataTransfer: DataTransferDTO, token: CancellationToken): Promise<IWorkspaceEditDto | undefined>;
+	$prepareDocumentPaste(handle: number, uri: UriComponents, range: IRange, dataTransfer: DataTransferDTO, token: CancellationToken): Promise<DataTransferDTO | undefined>;
+	$providePasteEdits(handle: number, uri: UriComponents, range: IRange, dataTransfer: DataTransferDTO, token: CancellationToken): Promise<IWorkspaceEditDto | undefined>;
 	$provideDocumentFormattingEdits(handle: number, resource: UriComponents, options: languages.FormattingOptions, token: CancellationToken): Promise<ISingleEditOperation[] | undefined>;
 	$provideDocumentRangeFormattingEdits(handle: number, resource: UriComponents, range: IRange, options: languages.FormattingOptions, token: CancellationToken): Promise<ISingleEditOperation[] | undefined>;
 	$provideOnTypeFormattingEdits(handle: number, resource: UriComponents, position: IPosition, ch: string, options: languages.FormattingOptions, token: CancellationToken): Promise<ISingleEditOperation[] | undefined>;
