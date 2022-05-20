@@ -10,7 +10,7 @@ import * as UUID from 'vs/base/common/uuid';
 import * as Types from 'vs/base/common/types';
 import * as Platform from 'vs/base/common/platform';
 import { ValidationStatus } from 'vs/base/common/parsers';
-import { ILocalProblemMatcher, FileLocationKind, ProblemPattern, ApplyToKind } from 'vs/workbench/contrib/tasks/common/problemMatcher';
+import { ICustomProblemMatcher, FileLocationKind, ProblemPattern, ApplyToKind } from 'vs/workbench/contrib/tasks/common/problemMatcher';
 import { WorkspaceFolder, IWorkspace } from 'vs/platform/workspace/common/workspace';
 
 import * as Tasks from 'vs/workbench/contrib/tasks/common/tasks';
@@ -249,7 +249,7 @@ class ProblemMatcherBuilder {
 
 	public static readonly DEFAULT_UUID = UUID.generateUuid();
 
-	public result: ILocalProblemMatcher;
+	public result: ICustomProblemMatcher;
 
 	constructor(public parent: CustomTaskBuilder) {
 		this.result = {
@@ -538,7 +538,7 @@ function assertPresentation(actual: Tasks.PresentationOptions, expected: Tasks.P
 	}
 }
 
-function assertProblemMatcher(actual: string | ILocalProblemMatcher, expected: string | ILocalProblemMatcher) {
+function assertProblemMatcher(actual: string | ICustomProblemMatcher, expected: string | ICustomProblemMatcher) {
 	assert.strictEqual(typeof actual, typeof expected);
 	if (typeof actual === 'string' && typeof expected === 'string') {
 		assert.strictEqual(actual, expected, 'Problem matcher references are different');

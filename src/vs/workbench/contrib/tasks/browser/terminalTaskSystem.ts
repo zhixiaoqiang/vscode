@@ -21,7 +21,7 @@ import { IFileService } from 'vs/platform/files/common/files';
 import { IMarkerService, MarkerSeverity } from 'vs/platform/markers/common/markers';
 import { IWorkspaceContextService, WorkbenchState, IWorkspaceFolder } from 'vs/platform/workspace/common/workspace';
 import { IModelService } from 'vs/editor/common/services/model';
-import { ILocalProblemMatcher, ProblemMatcherRegistry /*, ProblemPattern, getResource */ } from 'vs/workbench/contrib/tasks/common/problemMatcher';
+import { ICustomProblemMatcher, ProblemMatcherRegistry /*, ProblemPattern, getResource */ } from 'vs/workbench/contrib/tasks/common/problemMatcher';
 import Constants from 'vs/workbench/contrib/markers/browser/constants';
 
 import { IConfigurationResolverService } from 'vs/workbench/services/configurationResolver/common/configurationResolver';
@@ -1507,12 +1507,12 @@ export class TerminalTaskSystem extends Disposable implements ITaskSystem {
 		}
 	}
 
-	private collectMatcherVariables(variables: Set<string>, values: Array<string | ILocalProblemMatcher> | undefined): void {
+	private collectMatcherVariables(variables: Set<string>, values: Array<string | ICustomProblemMatcher> | undefined): void {
 		if (values === undefined || values === null || values.length === 0) {
 			return;
 		}
 		values.forEach((value) => {
-			let matcher: ILocalProblemMatcher;
+			let matcher: ICustomProblemMatcher;
 			if (Types.isString(value)) {
 				if (value[0] === '$') {
 					matcher = ProblemMatcherRegistry.get(value.substring(1));
@@ -1554,13 +1554,13 @@ export class TerminalTaskSystem extends Disposable implements ITaskSystem {
 		return Promise.all(value.map(s => this.resolveVariable(resolver, s)));
 	}
 
-	private async resolveMatchers(resolver: VariableResolver, values: Array<string | ILocalProblemMatcher> | undefined): Promise<ILocalProblemMatcher[]> {
+	private async resolveMatchers(resolver: VariableResolver, values: Array<string | ICustomProblemMatcher> | undefined): Promise<ICustomProblemMatcher[]> {
 		if (values === undefined || values === null || values.length === 0) {
 			return [];
 		}
-		let result: ILocalProblemMatcher[] = [];
+		let result: ICustomProblemMatcher[] = [];
 		for (const value of values) {
-			let matcher: ILocalProblemMatcher;
+			let matcher: ICustomProblemMatcher;
 			if (Types.isString(value)) {
 				if (value[0] === '$') {
 					matcher = ProblemMatcherRegistry.get(value.substring(1));

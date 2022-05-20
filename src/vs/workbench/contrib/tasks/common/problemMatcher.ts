@@ -127,7 +127,7 @@ export module ApplyToKind {
 	}
 }
 
-export interface ILocalProblemMatcher {
+export interface ICustomProblemMatcher {
 	owner: string;
 	source?: string;
 	applyTo: ApplyToKind;
@@ -139,7 +139,7 @@ export interface ILocalProblemMatcher {
 	uriProvider?: (path: string) => URI;
 }
 
-export interface INamedProblemMatcher extends ILocalProblemMatcher {
+export interface INamedProblemMatcher extends ICustomProblemMatcher {
 	name: string;
 	label: string;
 	deprecated?: boolean;
@@ -151,7 +151,7 @@ export interface NamedMultiLineProblemPattern {
 	patterns: MultiLineProblemPattern;
 }
 
-export function isNamedProblemMatcher(value: ILocalProblemMatcher | undefined): value is INamedProblemMatcher {
+export function isNamedProblemMatcher(value: ICustomProblemMatcher | undefined): value is INamedProblemMatcher {
 	return value && Types.isString((<INamedProblemMatcher>value).name) ? true : false;
 }
 
@@ -178,7 +178,7 @@ interface ProblemData {
 export interface ProblemMatch {
 	resource: Promise<URI>;
 	marker: IMarkerData;
-	description: ILocalProblemMatcher;
+	description: ICustomProblemMatcher;
 }
 
 export interface HandleResult {
@@ -187,7 +187,7 @@ export interface HandleResult {
 }
 
 
-export async function getResource(filename: string, matcher: ILocalProblemMatcher, fileService?: IFileService): Promise<URI> {
+export async function getResource(filename: string, matcher: ICustomProblemMatcher, fileService?: IFileService): Promise<URI> {
 	let kind = matcher.fileLocation;
 	let fullPath: string | undefined;
 	if (kind === FileLocationKind.Absolute) {
@@ -234,7 +234,7 @@ export interface ILineMatcher {
 	handle(lines: string[], start?: number): HandleResult;
 }
 
-export function createLineMatcher(matcher: ILocalProblemMatcher, fileService?: IFileService): ILineMatcher {
+export function createLineMatcher(matcher: ICustomProblemMatcher, fileService?: IFileService): ILineMatcher {
 	let pattern = matcher.pattern;
 	if (Types.isArray(pattern)) {
 		return new MultiLineMatcher(matcher, fileService);
@@ -246,10 +246,10 @@ export function createLineMatcher(matcher: ILocalProblemMatcher, fileService?: I
 const endOfLine: string = Platform.OS === Platform.OperatingSystem.Windows ? '\r\n' : '\n';
 
 abstract class AbstractLineMatcher implements ILineMatcher {
-	private matcher: ILocalProblemMatcher;
+	private matcher: ICustomProblemMatcher;
 	private fileService?: IFileService;
 
-	constructor(matcher: ILocalProblemMatcher, fileService?: IFileService) {
+	constructor(matcher: ICustomProblemMatcher, fileService?: IFileService) {
 		this.matcher = matcher;
 		this.fileService = fileService;
 	}
@@ -415,7 +415,7 @@ class SingleLineMatcher extends AbstractLineMatcher {
 
 	private pattern: ProblemPattern;
 
-	constructor(matcher: ILocalProblemMatcher, fileService?: IFileService) {
+	constructor(matcher: ICustomProblemMatcher, fileService?: IFileService) {
 		super(matcher, fileService);
 		this.pattern = <ProblemPattern>matcher.pattern;
 	}
@@ -451,7 +451,7 @@ class MultiLineMatcher extends AbstractLineMatcher {
 	private patterns: ProblemPattern[];
 	private data: ProblemData | undefined;
 
-	constructor(matcher: ILocalProblemMatcher, fileService?: IFileService) {
+	constructor(matcher: ICustomProblemMatcher, fileService?: IFileService) {
 		super(matcher, fileService);
 		this.patterns = <ProblemPattern[]>matcher.pattern;
 	}
@@ -1327,7 +1327,7 @@ export class ProblemMatcherParser extends Parser {
 		super(logger);
 	}
 
-	public parse(json: Config.ProblemMatcher): ILocalProblemMatcher | undefined {
+	public parse(json: Config.ProblemMatcher): ICustomProblemMatcher | undefined {
 		let result = this.createProblemMatcher(json);
 		if (!this.checkProblemMatcherValid(json, result)) {
 			return undefined;
@@ -1337,7 +1337,7 @@ export class ProblemMatcherParser extends Parser {
 		return result;
 	}
 
-	private checkProblemMatcherValid(externalProblemMatcher: Config.ProblemMatcher, problemMatcher: ILocalProblemMatcher | null): problemMatcher is ILocalProblemMatcher {
+	private checkProblemMatcherValid(externalProblemMatcher: Config.ProblemMatcher, problemMatcher: ICustomProblemMatcher | null): problemMatcher is ICustomProblemMatcher {
 		if (!problemMatcher) {
 			this.error(localize('ProblemMatcherParser.noProblemMatcher', 'Error: the description can\'t be converted into a problem matcher:\n{0}\n', JSON.stringify(externalProblemMatcher, null, 4)));
 			return false;
@@ -1357,8 +1357,8 @@ export class ProblemMatcherParser extends Parser {
 		return true;
 	}
 
-	private createProblemMatcher(description: Config.ProblemMatcher): ILocalProblemMatcher | null {
-		let result: ILocalProblemMatcher | null = null;
+	private createProblemMatcher(description: Config.ProblemMatcher): ICustomProblemMatcher | null {
+		let result: ICustomProblemMatcher | null = null;
 
 		let owner = Types.isString(description.owner) ? description.owner : UUID.generateUuid();
 		let source = Types.isString(description.source) ? description.source : undefined;
@@ -1480,7 +1480,7 @@ export class ProblemMatcherParser extends Parser {
 		return null;
 	}
 
-	private addWatchingMatcher(external: Config.ProblemMatcher, internal: ILocalProblemMatcher): void {
+	private addWatchingMatcher(external: Config.ProblemMatcher, internal: ICustomProblemMatcher): void {
 		let oldBegins = this.createRegularExpression(external.watchedTaskBeginsRegExp);
 		let oldEnds = this.createRegularExpression(external.watchedTaskEndsRegExp);
 		if (oldBegins && oldEnds) {
