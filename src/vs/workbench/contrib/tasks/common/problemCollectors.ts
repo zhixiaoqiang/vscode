@@ -10,7 +10,7 @@ import { IDisposable, DisposableStore } from 'vs/base/common/lifecycle';
 
 import { IModelService } from 'vs/editor/common/services/model';
 
-import { ILineMatcher, createLineMatcher, IProblemMatcher, ProblemMatch, ApplyToKind, WatchingPattern, getResource } from 'vs/workbench/contrib/tasks/common/problemMatcher';
+import { ILineMatcher, createLineMatcher, ILocalProblemMatcher, ProblemMatch, ApplyToKind, WatchingPattern, getResource } from 'vs/workbench/contrib/tasks/common/problemMatcher';
 import { IMarkerService, IMarkerData, MarkerSeverity } from 'vs/platform/markers/common/markers';
 import { generateUuid } from 'vs/base/common/uuid';
 import { IFileService } from 'vs/platform/files/common/files';
@@ -58,7 +58,7 @@ export abstract class AbstractProblemCollector implements IDisposable {
 
 	protected _onDidStateChange: Emitter<ProblemCollectorEvent>;
 
-	constructor(public readonly problemMatchers: IProblemMatcher[], protected markerService: IMarkerService, protected modelService: IModelService, fileService?: IFileService) {
+	constructor(public readonly problemMatchers: ILocalProblemMatcher[], protected markerService: IMarkerService, protected modelService: IModelService, fileService?: IFileService) {
 		this.matchers = Object.create(null);
 		this.bufferLength = 1;
 		problemMatchers.map(elem => createLineMatcher(elem, fileService)).forEach((matcher) => {
@@ -353,7 +353,7 @@ export class StartStopProblemCollector extends AbstractProblemCollector implemen
 	private currentOwner: string | undefined;
 	private currentResource: string | undefined;
 
-	constructor(problemMatchers: IProblemMatcher[], markerService: IMarkerService, modelService: IModelService, _strategy: ProblemHandlingStrategy = ProblemHandlingStrategy.Clean, fileService?: IFileService) {
+	constructor(problemMatchers: ILocalProblemMatcher[], markerService: IMarkerService, modelService: IModelService, _strategy: ProblemHandlingStrategy = ProblemHandlingStrategy.Clean, fileService?: IFileService) {
 		super(problemMatchers, markerService, modelService, fileService);
 		let ownerSet: { [key: string]: boolean } = Object.create(null);
 		problemMatchers.forEach(description => ownerSet[description.owner] = true);
@@ -389,7 +389,7 @@ export class StartStopProblemCollector extends AbstractProblemCollector implemen
 
 interface BackgroundPatterns {
 	key: string;
-	matcher: IProblemMatcher;
+	matcher: ILocalProblemMatcher;
 	begin: WatchingPattern;
 	end: WatchingPattern;
 }
@@ -407,7 +407,7 @@ export class WatchingProblemCollector extends AbstractProblemCollector implement
 
 	private lines: string[] = [];
 
-	constructor(problemMatchers: IProblemMatcher[], markerService: IMarkerService, modelService: IModelService, fileService?: IFileService) {
+	constructor(problemMatchers: ILocalProblemMatcher[], markerService: IMarkerService, modelService: IModelService, fileService?: IFileService) {
 		super(problemMatchers, markerService, modelService, fileService);
 		this.resetCurrentResource();
 		this.backgroundPatterns = [];

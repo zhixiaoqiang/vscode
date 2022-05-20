@@ -14,7 +14,7 @@ import * as UUID from 'vs/base/common/uuid';
 
 import { ValidationStatus, IProblemReporter as IProblemReporterBase } from 'vs/base/common/parsers';
 import {
-	INamedProblemMatcher, IProblemMatcher, ProblemMatcherParser, Config as ProblemMatcherConfig,
+	INamedProblemMatcher, ILocalProblemMatcher, ProblemMatcherParser, Config as ProblemMatcherConfig,
 	isNamedProblemMatcher, ProblemMatcherRegistry
 } from 'vs/workbench/contrib/tasks/common/problemMatcher';
 
@@ -1149,8 +1149,8 @@ export namespace ProblemMatcherConverter {
 		return result;
 	}
 
-	export function fromWithOsConfig(this: void, external: ConfigurationProperties & { [key: string]: any }, context: IParseContext): TaskConfigurationValueWithErrors<IProblemMatcher[]> {
-		let result: TaskConfigurationValueWithErrors<IProblemMatcher[]> = {};
+	export function fromWithOsConfig(this: void, external: ConfigurationProperties & { [key: string]: any }, context: IParseContext): TaskConfigurationValueWithErrors<ILocalProblemMatcher[]> {
+		let result: TaskConfigurationValueWithErrors<ILocalProblemMatcher[]> = {};
 		if (external.windows && external.windows.problemMatcher && context.platform === Platform.Windows) {
 			result = from(external.windows.problemMatcher, context);
 		} else if (external.osx && external.osx.problemMatcher && context.platform === Platform.Mac) {
@@ -1163,13 +1163,13 @@ export namespace ProblemMatcherConverter {
 		return result;
 	}
 
-	export function from(this: void, config: ProblemMatcherConfig.ProblemMatcherType | undefined, context: IParseContext): TaskConfigurationValueWithErrors<IProblemMatcher[]> {
-		let result: IProblemMatcher[] = [];
+	export function from(this: void, config: ProblemMatcherConfig.ProblemMatcherType | undefined, context: IParseContext): TaskConfigurationValueWithErrors<ILocalProblemMatcher[]> {
+		let result: ILocalProblemMatcher[] = [];
 		if (config === undefined) {
 			return { value: result };
 		}
 		const errors: string[] = [];
-		function addResult(matcher: TaskConfigurationValueWithErrors<IProblemMatcher>) {
+		function addResult(matcher: TaskConfigurationValueWithErrors<ILocalProblemMatcher>) {
 			if (matcher.value) {
 				result.push(matcher.value);
 			}
@@ -1207,7 +1207,7 @@ export namespace ProblemMatcherConverter {
 		}
 	}
 
-	export function resolveProblemMatcher(this: void, value: string | ProblemMatcherConfig.ProblemMatcher, context: IParseContext): TaskConfigurationValueWithErrors<IProblemMatcher> {
+	export function resolveProblemMatcher(this: void, value: string | ProblemMatcherConfig.ProblemMatcher, context: IParseContext): TaskConfigurationValueWithErrors<ILocalProblemMatcher> {
 		if (Types.isString(value)) {
 			let variableName = <string>value;
 			if (variableName.length > 1 && variableName[0] === '$') {
@@ -1216,7 +1216,7 @@ export namespace ProblemMatcherConverter {
 				if (global) {
 					return { value: Objects.deepClone(global) };
 				}
-				let localProblemMatcher: IProblemMatcher & Partial<INamedProblemMatcher> = context.namedProblemMatchers[variableName];
+				let localProblemMatcher: ILocalProblemMatcher & Partial<INamedProblemMatcher> = context.namedProblemMatchers[variableName];
 				if (localProblemMatcher) {
 					localProblemMatcher = Objects.deepClone(localProblemMatcher);
 					// remove the name
@@ -1797,7 +1797,7 @@ namespace TaskParser {
 
 interface Globals {
 	command?: Tasks.CommandConfiguration;
-	problemMatcher?: IProblemMatcher[];
+	problemMatcher?: ILocalProblemMatcher[];
 	promptOnClose?: boolean;
 	suppressTaskName?: boolean;
 }
@@ -2079,7 +2079,7 @@ class ConfigurationParser {
 		}
 
 		if ((!result.custom || result.custom.length === 0) && (globals.command && globals.command.name)) {
-			const matchers: IProblemMatcher[] = ProblemMatcherConverter.from(fileConfig.problemMatcher, context).value ?? [];
+			const matchers: ILocalProblemMatcher[] = ProblemMatcherConverter.from(fileConfig.problemMatcher, context).value ?? [];
 			let isBackground = fileConfig.isBackground ? !!fileConfig.isBackground : fileConfig.isWatching ? !!fileConfig.isWatching : undefined;
 			let name = Tasks.CommandString.value(globals.command.name);
 			let task: Tasks.CustomTask = new Tasks.CustomTask(

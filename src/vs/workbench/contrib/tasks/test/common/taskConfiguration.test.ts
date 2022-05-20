@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { deepEqual, ok, strictEqual } from 'assert';
+import { deepEqual, strictEqual } from 'assert';
 import { IStringDictionary } from 'vs/base/common/collections';
 import { TestInstantiationService } from 'vs/platform/instantiation/test/common/instantiationServiceMock';
 import { ApplyToKind, INamedProblemMatcher } from 'vs/workbench/contrib/tasks/common/problemMatcher';
