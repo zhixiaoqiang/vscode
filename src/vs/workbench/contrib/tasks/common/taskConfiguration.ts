@@ -14,7 +14,7 @@ import * as UUID from 'vs/base/common/uuid';
 
 import { ValidationStatus, IProblemReporter as IProblemReporterBase } from 'vs/base/common/parsers';
 import {
-	NamedProblemMatcher, ProblemMatcher, ProblemMatcherParser, Config as ProblemMatcherConfig,
+	INamedProblemMatcher, IProblemMatcher, ProblemMatcherParser, Config as ProblemMatcherConfig,
 	isNamedProblemMatcher, ProblemMatcherRegistry
 } from 'vs/workbench/contrib/tasks/common/problemMatcher';
 
@@ -556,7 +556,7 @@ interface ParserType<T> {
 	isEmpty(value: T | undefined): boolean;
 	assignProperties(target: T | undefined, source: T | undefined): T | undefined;
 	fillProperties(target: T | undefined, source: T | undefined): T | undefined;
-	fillDefaults(value: T | undefined, context: ParseContext): T | undefined;
+	fillDefaults(value: T | undefined, context: IParseContext): T | undefined;
 	freeze(value: T): Readonly<T> | undefined;
 }
 
@@ -627,7 +627,7 @@ function _fillProperties<T>(this: void, target: T | undefined, source: T | undef
 	return target;
 }
 
-function _fillDefaults<T>(this: void, target: T | undefined, defaults: T | undefined, properties: MetaData<T, any>[], context: ParseContext): T | undefined {
+function _fillDefaults<T>(this: void, target: T | undefined, defaults: T | undefined, properties: MetaData<T, any>[], context: IParseContext): T | undefined {
 	if (target && Object.isFrozen(target)) {
 		return target;
 	}
@@ -710,11 +710,11 @@ export namespace RunOptions {
 	}
 }
 
-interface ParseContext {
+export interface IParseContext {
 	workspaceFolder: IWorkspaceFolder;
 	workspace: IWorkspace | undefined;
 	problemReporter: IProblemReporter;
-	namedProblemMatchers: IStringDictionary<NamedProblemMatcher>;
+	namedProblemMatchers: IStringDictionary<INamedProblemMatcher>;
 	uuidMap: UUIDMap;
 	engine: Tasks.ExecutionEngine;
 	schemaVersion: Tasks.JsonSchemaVersion;
@@ -733,7 +733,7 @@ namespace ShellConfiguration {
 		return candidate && (Types.isString(candidate.executable) || Types.isStringArray(candidate.args));
 	}
 
-	export function from(this: void, config: ShellConfiguration | undefined, context: ParseContext): Tasks.ShellConfiguration | undefined {
+	export function from(this: void, config: ShellConfiguration | undefined, context: IParseContext): Tasks.ShellConfiguration | undefined {
 		if (!is(config)) {
 			return undefined;
 		}
@@ -763,7 +763,7 @@ namespace ShellConfiguration {
 		return _fillProperties(target, source, properties, true);
 	}
 
-	export function fillDefaults(this: void, value: Tasks.ShellConfiguration, context: ParseContext): Tasks.ShellConfiguration {
+	export function fillDefaults(this: void, value: Tasks.ShellConfiguration, context: IParseContext): Tasks.ShellConfiguration {
 		return value;
 	}
 
@@ -780,7 +780,7 @@ namespace CommandOptions {
 	const properties: MetaData<Tasks.CommandOptions, Tasks.ShellConfiguration>[] = [{ property: 'cwd' }, { property: 'env' }, { property: 'shell', type: ShellConfiguration }];
 	const defaults: CommandOptionsConfig = { cwd: '${workspaceFolder}' };
 
-	export function from(this: void, options: CommandOptionsConfig, context: ParseContext): Tasks.CommandOptions | undefined {
+	export function from(this: void, options: CommandOptionsConfig, context: IParseContext): Tasks.CommandOptions | undefined {
 		let result: Tasks.CommandOptions = {};
 		if (options.cwd !== undefined) {
 			if (Types.isString(options.cwd)) {
@@ -828,7 +828,7 @@ namespace CommandOptions {
 		return _fillProperties(target, source, properties);
 	}
 
-	export function fillDefaults(value: Tasks.CommandOptions | undefined, context: ParseContext): Tasks.CommandOptions | undefined {
+	export function fillDefaults(value: Tasks.CommandOptions | undefined, context: IParseContext): Tasks.CommandOptions | undefined {
 		return _fillDefaults(value, defaults, properties, context);
 	}
 
@@ -846,7 +846,7 @@ namespace CommandConfiguration {
 			presentation?: PresentationOptionsConfig;
 		}
 
-		export function from(this: void, config: PresentationOptionsShape, context: ParseContext): Tasks.PresentationOptions | undefined {
+		export function from(this: void, config: PresentationOptionsShape, context: IParseContext): Tasks.PresentationOptions | undefined {
 			let echo: boolean;
 			let reveal: Tasks.RevealKind;
 			let revealProblems: Tasks.RevealProblemKind;
@@ -910,7 +910,7 @@ namespace CommandConfiguration {
 			return _fillProperties(target, source, properties);
 		}
 
-		export function fillDefaults(value: Tasks.PresentationOptions, context: ParseContext): Tasks.PresentationOptions | undefined {
+		export function fillDefaults(value: Tasks.PresentationOptions, context: IParseContext): Tasks.PresentationOptions | undefined {
 			let defaultEcho = context.engine === Tasks.ExecutionEngine.Terminal ? true : false;
 			return _fillDefaults(value, { echo: defaultEcho, reveal: Tasks.RevealKind.Always, revealProblems: Tasks.RevealProblemKind.Never, focus: false, panel: Tasks.PanelKind.Shared, showReuseMessage: true, clear: false }, properties, context);
 		}
@@ -963,7 +963,7 @@ namespace CommandConfiguration {
 		{ property: 'presentation', type: PresentationOptions }
 	];
 
-	export function from(this: void, config: CommandConfigurationShape, context: ParseContext): Tasks.CommandConfiguration | undefined {
+	export function from(this: void, config: CommandConfigurationShape, context: IParseContext): Tasks.CommandConfiguration | undefined {
 		let result: Tasks.CommandConfiguration = fromBase(config, context)!;
 
 		let osConfig: Tasks.CommandConfiguration | undefined = undefined;
@@ -980,7 +980,7 @@ namespace CommandConfiguration {
 		return isEmpty(result) ? undefined : result;
 	}
 
-	function fromBase(this: void, config: BaseCommandConfigurationShape, context: ParseContext): Tasks.CommandConfiguration | undefined {
+	function fromBase(this: void, config: BaseCommandConfigurationShape, context: IParseContext): Tasks.CommandConfiguration | undefined {
 		let name: Tasks.CommandString | undefined = ShellString.from(config.command);
 		let runtime: Tasks.RuntimeType;
 		if (Types.isString(config.type)) {
@@ -1106,7 +1106,7 @@ namespace CommandConfiguration {
 		return target;
 	}
 
-	export function fillDefaults(value: Tasks.CommandConfiguration | undefined, context: ParseContext): void {
+	export function fillDefaults(value: Tasks.CommandConfiguration | undefined, context: IParseContext): void {
 		if (!value || Object.isFrozen(value)) {
 			return;
 		}
@@ -1130,10 +1130,10 @@ namespace CommandConfiguration {
 	}
 }
 
-namespace ProblemMatcherConverter {
+export namespace ProblemMatcherConverter {
 
-	export function namedFrom(this: void, declares: ProblemMatcherConfig.NamedProblemMatcher[] | undefined, context: ParseContext): IStringDictionary<NamedProblemMatcher> {
-		let result: IStringDictionary<NamedProblemMatcher> = Object.create(null);
+	export function namedFrom(this: void, declares: ProblemMatcherConfig.NamedProblemMatcher[] | undefined, context: IParseContext): IStringDictionary<INamedProblemMatcher> {
+		let result: IStringDictionary<INamedProblemMatcher> = Object.create(null);
 
 		if (!Types.isArray(declares)) {
 			return result;
@@ -1149,8 +1149,8 @@ namespace ProblemMatcherConverter {
 		return result;
 	}
 
-	export function fromWithOsConfig(this: void, external: ConfigurationProperties & { [key: string]: any }, context: ParseContext): TaskConfigurationValueWithErrors<ProblemMatcher[]> {
-		let result: TaskConfigurationValueWithErrors<ProblemMatcher[]> = {};
+	export function fromWithOsConfig(this: void, external: ConfigurationProperties & { [key: string]: any }, context: IParseContext): TaskConfigurationValueWithErrors<IProblemMatcher[]> {
+		let result: TaskConfigurationValueWithErrors<IProblemMatcher[]> = {};
 		if (external.windows && external.windows.problemMatcher && context.platform === Platform.Windows) {
 			result = from(external.windows.problemMatcher, context);
 		} else if (external.osx && external.osx.problemMatcher && context.platform === Platform.Mac) {
@@ -1163,13 +1163,13 @@ namespace ProblemMatcherConverter {
 		return result;
 	}
 
-	export function from(this: void, config: ProblemMatcherConfig.ProblemMatcherType | undefined, context: ParseContext): TaskConfigurationValueWithErrors<ProblemMatcher[]> {
-		let result: ProblemMatcher[] = [];
+	export function from(this: void, config: ProblemMatcherConfig.ProblemMatcherType | undefined, context: IParseContext): TaskConfigurationValueWithErrors<IProblemMatcher[]> {
+		let result: IProblemMatcher[] = [];
 		if (config === undefined) {
 			return { value: result };
 		}
 		const errors: string[] = [];
-		function addResult(matcher: TaskConfigurationValueWithErrors<ProblemMatcher>) {
+		function addResult(matcher: TaskConfigurationValueWithErrors<IProblemMatcher>) {
 			if (matcher.value) {
 				result.push(matcher.value);
 			}
@@ -1207,7 +1207,7 @@ namespace ProblemMatcherConverter {
 		}
 	}
 
-	function resolveProblemMatcher(this: void, value: string | ProblemMatcherConfig.ProblemMatcher, context: ParseContext): TaskConfigurationValueWithErrors<ProblemMatcher> {
+	export function resolveProblemMatcher(this: void, value: string | ProblemMatcherConfig.ProblemMatcher, context: IParseContext): TaskConfigurationValueWithErrors<IProblemMatcher> {
 		if (Types.isString(value)) {
 			let variableName = <string>value;
 			if (variableName.length > 1 && variableName[0] === '$') {
@@ -1216,7 +1216,7 @@ namespace ProblemMatcherConverter {
 				if (global) {
 					return { value: Objects.deepClone(global) };
 				}
-				let localProblemMatcher: ProblemMatcher & Partial<NamedProblemMatcher> = context.namedProblemMatchers[variableName];
+				let localProblemMatcher: IProblemMatcher & Partial<INamedProblemMatcher> = context.namedProblemMatchers[variableName];
 				if (localProblemMatcher) {
 					localProblemMatcher = Objects.deepClone(localProblemMatcher);
 					// remove the name
@@ -1266,7 +1266,7 @@ export namespace GroupKind {
 }
 
 namespace TaskDependency {
-	function uriFromSource(context: ParseContext, source: TaskConfigSource): URI | string {
+	function uriFromSource(context: IParseContext, source: TaskConfigSource): URI | string {
 		switch (source) {
 			case TaskConfigSource.User: return USER_TASKS_GROUP_KEY;
 			case TaskConfigSource.TasksJson: return context.workspaceFolder.uri;
@@ -1274,7 +1274,7 @@ namespace TaskDependency {
 		}
 	}
 
-	export function from(this: void, external: string | TaskIdentifier, context: ParseContext, source: TaskConfigSource): Tasks.TaskDependency | undefined {
+	export function from(this: void, external: string | TaskIdentifier, context: IParseContext, source: TaskConfigSource): Tasks.TaskDependency | undefined {
 		if (Types.isString(external)) {
 			return { uri: uriFromSource(context, source), task: external };
 		} else if (TaskIdentifier.is(external)) {
@@ -1310,7 +1310,7 @@ namespace ConfigurationProperties {
 		{ property: 'options' }
 	];
 
-	export function from(this: void, external: ConfigurationProperties & { [key: string]: any }, context: ParseContext,
+	export function from(this: void, external: ConfigurationProperties & { [key: string]: any }, context: IParseContext,
 		includeCommandOptions: boolean, source: TaskConfigSource, properties?: IJSONSchemaMap): TaskConfigurationValueWithErrors<Tasks.ConfigurationProperties> {
 		if (!external) {
 			return {};
@@ -1389,7 +1389,7 @@ namespace ConfiguringTask {
 		customize: string;
 	}
 
-	export function from(this: void, external: ConfiguringTask, context: ParseContext, index: number, source: TaskConfigSource): Tasks.ConfiguringTask | undefined {
+	export function from(this: void, external: ConfiguringTask, context: IParseContext, index: number, source: TaskConfigSource): Tasks.ConfiguringTask | undefined {
 		if (!external) {
 			return undefined;
 		}
@@ -1496,7 +1496,7 @@ namespace ConfiguringTask {
 }
 
 namespace CustomTask {
-	export function from(this: void, external: CustomTask, context: ParseContext, index: number, source: TaskConfigSource): Tasks.CustomTask | undefined {
+	export function from(this: void, external: CustomTask, context: IParseContext, index: number, source: TaskConfigSource): Tasks.CustomTask | undefined {
 		if (!external) {
 			return undefined;
 		}
@@ -1593,7 +1593,7 @@ namespace CustomTask {
 		}
 	}
 
-	export function fillDefaults(task: Tasks.CustomTask, context: ParseContext): void {
+	export function fillDefaults(task: Tasks.CustomTask, context: IParseContext): void {
 		CommandConfiguration.fillDefaults(task.command, context);
 		if (task.configurationProperties.promptOnClose === undefined) {
 			task.configurationProperties.promptOnClose = task.configurationProperties.isBackground !== undefined ? !task.configurationProperties.isBackground : true;
@@ -1672,7 +1672,7 @@ namespace TaskParser {
 		process: ProcessExecutionSupportedContext
 	};
 
-	export function from(this: void, externals: Array<CustomTask | ConfiguringTask> | undefined, globals: Globals, context: ParseContext, source: TaskConfigSource): TaskParseResult {
+	export function from(this: void, externals: Array<CustomTask | ConfiguringTask> | undefined, globals: Globals, context: IParseContext, source: TaskConfigSource): TaskParseResult {
 		let result: TaskParseResult = { custom: [], configured: [] };
 		if (!externals) {
 			return result;
@@ -1797,14 +1797,14 @@ namespace TaskParser {
 
 interface Globals {
 	command?: Tasks.CommandConfiguration;
-	problemMatcher?: ProblemMatcher[];
+	problemMatcher?: IProblemMatcher[];
 	promptOnClose?: boolean;
 	suppressTaskName?: boolean;
 }
 
 namespace Globals {
 
-	export function from(config: ExternalTaskRunnerConfiguration, context: ParseContext): Globals {
+	export function from(config: ExternalTaskRunnerConfiguration, context: IParseContext): Globals {
 		let result = fromBase(config, context);
 		let osGlobals: Globals | undefined = undefined;
 		if (config.windows && context.platform === Platform.Windows) {
@@ -1826,7 +1826,7 @@ namespace Globals {
 		return result;
 	}
 
-	export function fromBase(this: void, config: BaseTaskRunnerConfiguration, context: ParseContext): Globals {
+	export function fromBase(this: void, config: BaseTaskRunnerConfiguration, context: IParseContext): Globals {
 		let result: Globals = {};
 		if (config.suppressTaskName !== undefined) {
 			result.suppressTaskName = !!config.suppressTaskName;
@@ -1856,7 +1856,7 @@ namespace Globals {
 		return target;
 	}
 
-	export function fillDefaults(value: Globals, context: ParseContext): void {
+	export function fillDefaults(value: Globals, context: IParseContext): void {
 		if (!value) {
 			return;
 		}
@@ -2019,7 +2019,7 @@ class ConfigurationParser {
 	public run(fileConfig: ExternalTaskRunnerConfiguration, source: TaskConfigSource, contextKeyService: IContextKeyService): ParseResult {
 		let engine = ExecutionEngine.from(fileConfig);
 		let schemaVersion = JsonSchemaVersion.from(fileConfig);
-		let context: ParseContext = {
+		let context: IParseContext = {
 			workspaceFolder: this.workspaceFolder,
 			workspace: this.workspace,
 			problemReporter: this.problemReporter,
@@ -2040,7 +2040,7 @@ class ConfigurationParser {
 		};
 	}
 
-	private createTaskRunnerConfiguration(fileConfig: ExternalTaskRunnerConfiguration, context: ParseContext, source: TaskConfigSource): TaskParseResult {
+	private createTaskRunnerConfiguration(fileConfig: ExternalTaskRunnerConfiguration, context: IParseContext, source: TaskConfigSource): TaskParseResult {
 		let globals = Globals.from(fileConfig, context);
 		if (this.problemReporter.status.isFatal()) {
 			return { custom: [], configured: [] };
@@ -2079,7 +2079,7 @@ class ConfigurationParser {
 		}
 
 		if ((!result.custom || result.custom.length === 0) && (globals.command && globals.command.name)) {
-			const matchers: ProblemMatcher[] = ProblemMatcherConverter.from(fileConfig.problemMatcher, context).value ?? [];
+			const matchers: IProblemMatcher[] = ProblemMatcherConverter.from(fileConfig.problemMatcher, context).value ?? [];
 			let isBackground = fileConfig.isBackground ? !!fileConfig.isBackground : fileConfig.isWatching ? !!fileConfig.isWatching : undefined;
 			let name = Tasks.CommandString.value(globals.command.name);
 			let task: Tasks.CustomTask = new Tasks.CustomTask(

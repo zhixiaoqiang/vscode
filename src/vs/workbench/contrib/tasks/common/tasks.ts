@@ -10,7 +10,7 @@ import { IJSONSchemaMap } from 'vs/base/common/jsonSchema';
 import * as Objects from 'vs/base/common/objects';
 import { UriComponents, URI } from 'vs/base/common/uri';
 
-import { ProblemMatcher } from 'vs/workbench/contrib/tasks/common/problemMatcher';
+import { IProblemMatcher } from 'vs/workbench/contrib/tasks/common/problemMatcher';
 import { IWorkspaceFolder, IWorkspace } from 'vs/platform/workspace/common/workspace';
 import { RawContextKey, ContextKeyExpression } from 'vs/platform/contextkey/common/contextkey';
 import { TaskDefinitionRegistry } from 'vs/workbench/contrib/tasks/common/taskDefinitionRegistry';
@@ -541,7 +541,7 @@ export interface ConfigurationProperties {
 	/**
 	 * The problem watchers to use for this task
 	 */
-	problemMatchers?: Array<string | ProblemMatcher>;
+	problemMatchers?: Array<string | IProblemMatcher>;
 }
 
 export enum RunOnOptions {

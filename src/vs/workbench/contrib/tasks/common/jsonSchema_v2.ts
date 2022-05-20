@@ -470,14 +470,11 @@ taskDescription.default = {
 	command: 'echo Hello',
 	problemMatcher: []
 };
-definitions.showOutputType.deprecationMessage = nls.localize(
-	'JsonSchema.tasks.showOutput.deprecated',
-	'The property showOutput is deprecated. Use the reveal property inside the presentation property instead. See also the 1.14 release notes.'
-);
-taskDescriptionProperties.echoCommand.deprecationMessage = nls.localize(
-	'JsonSchema.tasks.echoCommand.deprecated',
-	'The property echoCommand is deprecated. Use the echo property inside the presentation property instead. See also the 1.14 release notes.'
-);
+definitions.showOutputType.deprecationMessage =
+	taskDescriptionProperties.echoCommand.deprecationMessage = nls.localize(
+		'JsonSchema.tasks.echoCommand.deprecated',
+		'The property echoCommand is deprecated. Use the echo property inside the presentation property instead. See also the 1.14 release notes.'
+	);
 taskDescriptionProperties.suppressTaskName.deprecationMessage = nls.localize(
 	'JsonSchema.tasks.suppressTaskName.deprecated',
 	'The property suppressTaskName is deprecated. Inline the command with its arguments into the task instead. See also the 1.14 release notes.'

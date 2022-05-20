@@ -26,7 +26,7 @@ import { IConfigurationService, ConfigurationTarget } from 'vs/platform/configur
 import { IFileService, IFileStatWithPartialMetadata } from 'vs/platform/files/common/files';
 import { IExtensionService } from 'vs/workbench/services/extensions/common/extensions';
 import { CommandsRegistry, ICommandService } from 'vs/platform/commands/common/commands';
-import { ProblemMatcherRegistry, NamedProblemMatcher } from 'vs/workbench/contrib/tasks/common/problemMatcher';
+import { ProblemMatcherRegistry, INamedProblemMatcher } from 'vs/workbench/contrib/tasks/common/problemMatcher';
 import { IStorageService, StorageScope, StorageTarget } from 'vs/platform/storage/common/storage';
 import { IProgressService, IProgressOptions, ProgressLocation } from 'vs/platform/progress/common/progress';
 
@@ -1159,7 +1159,7 @@ export abstract class AbstractTaskService extends Disposable implements ITaskSer
 
 	private attachProblemMatcher(task: ContributedTask | CustomTask): Promise<Task | undefined> {
 		interface ProblemMatcherPickEntry extends IQuickPickItem {
-			matcher: NamedProblemMatcher | undefined;
+			matcher: INamedProblemMatcher | undefined;
 			never?: boolean;
 			learnMore?: boolean;
 			setting?: string;

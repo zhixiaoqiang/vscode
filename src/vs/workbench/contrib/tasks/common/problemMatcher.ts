@@ -127,7 +127,7 @@ export module ApplyToKind {
 	}
 }
 
-export interface ProblemMatcher {
+export interface IProblemMatcher {
 	owner: string;
 	source?: string;
 	applyTo: ApplyToKind;
@@ -139,7 +139,7 @@ export interface ProblemMatcher {
 	uriProvider?: (path: string) => URI;
 }
 
-export interface NamedProblemMatcher extends ProblemMatcher {
+export interface INamedProblemMatcher extends IProblemMatcher {
 	name: string;
 	label: string;
 	deprecated?: boolean;
@@ -151,8 +151,8 @@ export interface NamedMultiLineProblemPattern {
 	patterns: MultiLineProblemPattern;
 }
 
-export function isNamedProblemMatcher(value: ProblemMatcher | undefined): value is NamedProblemMatcher {
-	return value && Types.isString((<NamedProblemMatcher>value).name) ? true : false;
+export function isNamedProblemMatcher(value: IProblemMatcher | undefined): value is INamedProblemMatcher {
+	return value && Types.isString((<INamedProblemMatcher>value).name) ? true : false;
 }
 
 interface Location {
@@ -178,7 +178,7 @@ interface ProblemData {
 export interface ProblemMatch {
 	resource: Promise<URI>;
 	marker: IMarkerData;
-	description: ProblemMatcher;
+	description: IProblemMatcher;
 }
 
 export interface HandleResult {
@@ -187,7 +187,7 @@ export interface HandleResult {
 }
 
 
-export async function getResource(filename: string, matcher: ProblemMatcher, fileService?: IFileService): Promise<URI> {
+export async function getResource(filename: string, matcher: IProblemMatcher, fileService?: IFileService): Promise<URI> {
 	let kind = matcher.fileLocation;
 	let fullPath: string | undefined;
 	if (kind === FileLocationKind.Absolute) {
@@ -234,7 +234,7 @@ export interface ILineMatcher {
 	handle(lines: string[], start?: number): HandleResult;
 }
 
-export function createLineMatcher(matcher: ProblemMatcher, fileService?: IFileService): ILineMatcher {
+export function createLineMatcher(matcher: IProblemMatcher, fileService?: IFileService): ILineMatcher {
 	let pattern = matcher.pattern;
 	if (Types.isArray(pattern)) {
 		return new MultiLineMatcher(matcher, fileService);
@@ -246,10 +246,10 @@ export function createLineMatcher(matcher: ProblemMatcher, fileService?: IFileSe
 const endOfLine: string = Platform.OS === Platform.OperatingSystem.Windows ? '\r\n' : '\n';
 
 abstract class AbstractLineMatcher implements ILineMatcher {
-	private matcher: ProblemMatcher;
+	private matcher: IProblemMatcher;
 	private fileService?: IFileService;
 
-	constructor(matcher: ProblemMatcher, fileService?: IFileService) {
+	constructor(matcher: IProblemMatcher, fileService?: IFileService) {
 		this.matcher = matcher;
 		this.fileService = fileService;
 	}
@@ -415,7 +415,7 @@ class SingleLineMatcher extends AbstractLineMatcher {
 
 	private pattern: ProblemPattern;
 
-	constructor(matcher: ProblemMatcher, fileService?: IFileService) {
+	constructor(matcher: IProblemMatcher, fileService?: IFileService) {
 		super(matcher, fileService);
 		this.pattern = <ProblemPattern>matcher.pattern;
 	}
@@ -451,7 +451,7 @@ class MultiLineMatcher extends AbstractLineMatcher {
 	private patterns: ProblemPattern[];
 	private data: ProblemData | undefined;
 
-	constructor(matcher: ProblemMatcher, fileService?: IFileService) {
+	constructor(matcher: IProblemMatcher, fileService?: IFileService) {
 		super(matcher, fileService);
 		this.patterns = <ProblemPattern[]>matcher.pattern;
 	}
@@ -1327,7 +1327,7 @@ export class ProblemMatcherParser extends Parser {
 		super(logger);
 	}
 
-	public parse(json: Config.ProblemMatcher): ProblemMatcher | undefined {
+	public parse(json: Config.ProblemMatcher): IProblemMatcher | undefined {
 		let result = this.createProblemMatcher(json);
 		if (!this.checkProblemMatcherValid(json, result)) {
 			return undefined;
@@ -1337,7 +1337,7 @@ export class ProblemMatcherParser extends Parser {
 		return result;
 	}
 
-	private checkProblemMatcherValid(externalProblemMatcher: Config.ProblemMatcher, problemMatcher: ProblemMatcher | null): problemMatcher is ProblemMatcher {
+	private checkProblemMatcherValid(externalProblemMatcher: Config.ProblemMatcher, problemMatcher: IProblemMatcher | null): problemMatcher is IProblemMatcher {
 		if (!problemMatcher) {
 			this.error(localize('ProblemMatcherParser.noProblemMatcher', 'Error: the description can\'t be converted into a problem matcher:\n{0}\n', JSON.stringify(externalProblemMatcher, null, 4)));
 			return false;
@@ -1357,8 +1357,8 @@ export class ProblemMatcherParser extends Parser {
 		return true;
 	}
 
-	private createProblemMatcher(description: Config.ProblemMatcher): ProblemMatcher | null {
-		let result: ProblemMatcher | null = null;
+	private createProblemMatcher(description: Config.ProblemMatcher): IProblemMatcher | null {
+		let result: IProblemMatcher | null = null;
 
 		let owner = Types.isString(description.owner) ? description.owner : UUID.generateUuid();
 		let source = Types.isString(description.source) ? description.source : undefined;
@@ -1447,8 +1447,8 @@ export class ProblemMatcherParser extends Parser {
 			}
 		}
 		if (Config.isNamedProblemMatcher(description)) {
-			(result as NamedProblemMatcher).name = description.name;
-			(result as NamedProblemMatcher).label = Types.isString(description.label) ? description.label : description.name;
+			(result as INamedProblemMatcher).name = description.name;
+			(result as INamedProblemMatcher).label = Types.isString(description.label) ? description.label : description.name;
 		}
 		return result;
 	}
@@ -1480,7 +1480,7 @@ export class ProblemMatcherParser extends Parser {
 		return null;
 	}
 
-	private addWatchingMatcher(external: Config.ProblemMatcher, internal: ProblemMatcher): void {
+	private addWatchingMatcher(external: Config.ProblemMatcher, internal: IProblemMatcher): void {
 		let oldBegins = this.createRegularExpression(external.watchedTaskBeginsRegExp);
 		let oldEnds = this.createRegularExpression(external.watchedTaskEndsRegExp);
 		if (oldBegins && oldEnds) {
@@ -1715,14 +1715,14 @@ const problemMatchersExtPoint = ExtensionsRegistry.registerExtensionPoint<Config
 
 export interface IProblemMatcherRegistry {
 	onReady(): Promise<void>;
-	get(name: string): NamedProblemMatcher;
+	get(name: string): INamedProblemMatcher;
 	keys(): string[];
 	readonly onMatcherChanged: Event<void>;
 }
 
 class ProblemMatcherRegistryImpl implements IProblemMatcherRegistry {
 
-	private matchers: IStringDictionary<NamedProblemMatcher>;
+	private matchers: IStringDictionary<INamedProblemMatcher>;
 	private readyPromise: Promise<void>;
 	private readonly _onMatchersChanged: Emitter<void> = new Emitter<void>();
 	public readonly onMatcherChanged: Event<void> = this._onMatchersChanged.event;
@@ -1771,11 +1771,11 @@ class ProblemMatcherRegistryImpl implements IProblemMatcherRegistry {
 		return this.readyPromise;
 	}
 
-	public add(matcher: NamedProblemMatcher): void {
+	public add(matcher: INamedProblemMatcher): void {
 		this.matchers[matcher.name] = matcher;
 	}
 
-	public get(name: string): NamedProblemMatcher {
+	public get(name: string): INamedProblemMatcher {
 		return this.matchers[name];
 	}
 
