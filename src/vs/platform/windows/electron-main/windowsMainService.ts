@@ -333,6 +333,7 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 
 			// 1.) focus window we opened files in always with highest priority
 			if (filesOpenedInWindow) {
+				console.log('filesOpenedInWindow---');
 				filesOpenedInWindow.focus();
 			}
 

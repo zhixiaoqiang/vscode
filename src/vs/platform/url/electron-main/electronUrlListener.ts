@@ -49,7 +49,7 @@ export class ElectronURLListener {
 
 		// the initial set of URIs we need to handle once the window is ready
 		this.uris = initialUrisToHandle;
-
+		console.log('productService.urlProtocol', productService.urlProtocol);
 		// Windows: install as protocol handler
 		if (isWindows) {
 			const windowsParameters = environmentMainService.isBuilt ? [] : [`"${environmentMainService.appRoot}"`];
@@ -59,7 +59,9 @@ export class ElectronURLListener {
 
 		// macOS: listen to `open-url` events from here on to handle
 		const onOpenElectronUrl = Event.map(
-			Event.fromNodeEventEmitter(app, 'open-url', (event: ElectronEvent, url: string) => ({ event, url })),
+			Event.fromNodeEventEmitter(app, 'open-url', (event: ElectronEvent, url: string) => {
+				return ({ event, url });
+			}),
 			({ event, url }) => {
 				event.preventDefault(); // always prevent default and return the url as string
 				return url;
@@ -67,7 +69,6 @@ export class ElectronURLListener {
 
 		this.disposables.add(onOpenElectronUrl(url => {
 			const uri = uriFromRawUrl(url);
-
 			if (!uri) {
 				return;
 			}

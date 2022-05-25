@@ -433,6 +433,7 @@ export function isSavedWorkspace(path: URI, environmentService: IEnvironmentServ
 
 export function hasWorkspaceFileExtension(path: string | URI) {
 	const ext = (typeof path === 'string') ? extname(path) : resourceExtname(path);
-
+	console.log('hasWorkspaceFileExtension ext', ext, WORKSPACE_SUFFIX);
+	console.log('path -- ', path);
 	return ext === WORKSPACE_SUFFIX;
 }

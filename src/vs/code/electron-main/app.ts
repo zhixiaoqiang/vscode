@@ -781,6 +781,7 @@ export class CodeApplication extends Disposable {
 	}
 
 	private openFirstWindow(accessor: ServicesAccessor, mainProcessElectronServer: ElectronIPCServer): ICodeWindow[] {
+		console.log('openFirstWindow ---');
 		const windowsMainService = this.windowsMainService = accessor.get(IWindowsMainService);
 		const urlService = accessor.get(IURLService);
 		const nativeHostMainService = accessor.get(INativeHostMainService);
@@ -834,6 +835,19 @@ export class CodeApplication extends Disposable {
 		const environmentService = this.environmentMainService;
 		const productService = this.productService;
 		const logService = this.logService;
+
+
+		// Create a URL handler which forwards to the last active window
+		const activeWindowManager = this._register(new ActiveWindowManager({
+			onDidOpenWindow: nativeHostMainService.onDidOpenWindow,
+			onDidFocusWindow: nativeHostMainService.onDidFocusWindow,
+			getActiveWindowId: () => nativeHostMainService.getActiveWindowId(-1)
+		}));
+		const activeWindowRouter = new StaticRouter(ctx => activeWindowManager.getActiveClientId().then(id => ctx === id));
+		const urlHandlerRouter = new URLHandlerRouter(activeWindowRouter);
+		const urlHandlerChannel = mainProcessElectronServer.getChannel('urlHandler', urlHandlerRouter);
+		urlService.registerHandler(new URLHandlerChannelClient(urlHandlerChannel));
+
 		urlService.registerHandler({
 			async handleURL(uri: URI, options?: IOpenURLOptions): Promise<boolean> {
 				logService.trace('app#handleURL: ', uri.toString(true), options);
@@ -866,16 +880,23 @@ export class CodeApplication extends Disposable {
 
 				// Check for URIs to open in window
 				const windowOpenableFromProtocolLink = app.getWindowOpenableFromProtocolLink(uri);
+				console.log('uri', uri, windowOpenableFromProtocolLink, windowsMainService.getWindowCount(), windowsMainService.getWindows());
 				logService.trace('app#handleURL: windowOpenableFromProtocolLink = ', windowOpenableFromProtocolLink);
 				if (windowOpenableFromProtocolLink) {
+					console.log('open ---------- 1', shouldOpenInNewWindow, windowsMainService, windowOpenableFromProtocolLink);
+					console.log('environmentService.args', environmentService.args);
 					const [window] = windowsMainService.open({
 						context: OpenContext.API,
 						cli: { ...environmentService.args },
 						urisToOpen: [windowOpenableFromProtocolLink],
 						forceNewWindow: shouldOpenInNewWindow,
+						forceReuseWindow: true,
 						gotoLineMode: true
 						// remoteAuthority: will be determined based on windowOpenableFromProtocolLink
 					});
+					console.log();
+					console.log('window ---', window);
+					console.log();
 
 					window.focus(); // this should help ensuring that the right window gets focus when multiple are opened
 
@@ -883,6 +904,7 @@ export class CodeApplication extends Disposable {
 				}
 
 				if (shouldOpenInNewWindow) {
+					console.log('open ---------- 2');
 					const [window] = windowsMainService.open({
 						context: OpenContext.API,
 						cli: { ...environmentService.args },
@@ -900,18 +922,6 @@ export class CodeApplication extends Disposable {
 				return false;
 			}
 		});
-
-		// Create a URL handler which forwards to the last active window
-		const activeWindowManager = this._register(new ActiveWindowManager({
-			onDidOpenWindow: nativeHostMainService.onDidOpenWindow,
-			onDidFocusWindow: nativeHostMainService.onDidFocusWindow,
-			getActiveWindowId: () => nativeHostMainService.getActiveWindowId(-1)
-		}));
-		const activeWindowRouter = new StaticRouter(ctx => activeWindowManager.getActiveClientId().then(id => ctx === id));
-		const urlHandlerRouter = new URLHandlerRouter(activeWindowRouter);
-		const urlHandlerChannel = mainProcessElectronServer.getChannel('urlHandler', urlHandlerRouter);
-		urlService.registerHandler(new URLHandlerChannelClient(urlHandlerChannel));
-
 		// Watch Electron URLs and forward them to the UrlService
 		this._register(new ElectronURLListener(pendingProtocolLinksToHandle, urlService, windowsMainService, this.environmentMainService, this.productService));
 
@@ -930,6 +940,7 @@ export class CodeApplication extends Disposable {
 		// e.g. when running code with --open-uri from
 		// a protocol handler
 		if (pendingWindowOpenablesFromProtocolLinks.length > 0) {
+			console.log('open ---------- 3');
 			return windowsMainService.open({
 				context,
 				cli: args,
@@ -942,6 +953,7 @@ export class CodeApplication extends Disposable {
 
 		// new window if "-n"
 		if (args['new-window'] && !hasCliArgs && !hasFolderURIs && !hasFileURIs) {
+			console.log('open ---------- 4');
 			return windowsMainService.open({
 				context,
 				cli: args,
@@ -956,6 +968,7 @@ export class CodeApplication extends Disposable {
 
 		// mac: open-file event received on startup
 		if (macOpenFiles.length && !hasCliArgs && !hasFolderURIs && !hasFileURIs) {
+			console.log('open ---------- 5');
 			return windowsMainService.open({
 				context: OpenContext.DOCK,
 				cli: args,
@@ -968,6 +981,7 @@ export class CodeApplication extends Disposable {
 		}
 
 		// default: read paths from cli
+		console.log('open ---------- 6');
 		return windowsMainService.open({
 			context,
 			cli: args,
@@ -1012,9 +1026,12 @@ export class CodeApplication extends Disposable {
 
 		// File path
 		if (uri.authority === Schemas.file) {
+			console.log('uri.fsPath ---', uri.fsPath);
 			const fileUri = URI.file(uri.fsPath);
+			const hasWorkspaceFileExt = hasWorkspaceFileExtension(fileUri);
+			console.log('uri.authority --- 2', fileUri, hasWorkspaceFileExt);
 
-			if (hasWorkspaceFileExtension(fileUri)) {
+			if (hasWorkspaceFileExt) {
 				return { workspaceUri: fileUri };
 			}
 
